@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import type { Budget, Transaction } from '@/types'
 
 // Custom hook for managing local storage
 export function useLocalStorage<T>(key: string, initialValue: T) {
@@ -79,4 +80,76 @@ export function useAsync<T, E = string>(
   }, [immediate])
 
   return { execute, status, data, error }
+}
+
+// Custom hook for currency formatting
+export function useCurrency(defaultCurrency: string = 'USD') {
+  const [currency, setCurrency] = useLocalStorage('preferred-currency', defaultCurrency)
+
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount)
+  }
+
+  return { currency, setCurrency, formatAmount }
+}
+
+// Custom hook for budget calculations
+export function useBudgetCalculations(budgets: Budget[], transactions: Transaction[]) {
+  const [calculations, setCalculations] = useState({
+    totalBudget: 0,
+    totalSpent: 0,
+    utilization: 0,
+    remainingBudget: 0,
+  })
+
+  useEffect(() => {
+    const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0)
+    const totalSpent = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, transaction) => sum + transaction.amount, 0)
+    
+    const utilization = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0
+    const remainingBudget = totalBudget - totalSpent
+
+    setCalculations({
+      totalBudget,
+      totalSpent,
+      utilization,
+      remainingBudget,
+    })
+  }, [budgets, transactions])
+
+  return calculations
+}
+
+// Custom hook for financial summary
+export function useFinancialSummary(transactions: Transaction[]) {
+  const [summary, setSummary] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netIncome: 0,
+    transactionCount: 0,
+  })
+
+  useEffect(() => {
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0)
+    
+    const expenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0)
+
+    setSummary({
+      totalIncome: income,
+      totalExpenses: expenses,
+      netIncome: income - expenses,
+      transactionCount: transactions.length,
+    })
+  }, [transactions])
+
+  return summary
 }

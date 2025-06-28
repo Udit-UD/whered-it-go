@@ -1,6 +1,15 @@
 # Where'd It Go
 
-A modern web application built with Next.js 15, TypeScript, and shadcn/ui for tracking and managing your items.
+A modern financial tracking web application built with Next.js 15, TypeScript, and shadcn/ui to help you understand where your money goes and take control of your finances.
+
+## 💰 About
+
+"Where'd It Go" is a comprehensive personal finance tracker that helps you:
+- Track your income and expenses
+- Categorize your spending
+- Visualize your financial habits
+- Set and monitor budgets
+- Understand where your money really goes
 
 ## 🚀 Tech Stack
 
@@ -15,8 +24,8 @@ A modern web application built with Next.js 15, TypeScript, and shadcn/ui for tr
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── (dashboard)/       # Dashboard route group
-│   ├── api/               # API routes
+│   ├── (dashboard)/       # Dashboard route group for financial overview
+│   ├── api/               # API routes for transactions, budgets, etc.
 │   ├── globals.css        # Global styles with shadcn/ui variables
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Home page
@@ -38,9 +47,9 @@ src/
 ├── lib/                   # Utility functions
 │   └── utils.ts          # cn function and other utilities
 ├── types/                 # TypeScript type definitions
-│   └── index.ts          # API types, UI types, etc.
+│   └── index.ts          # Transaction types, Budget types, etc.
 ├── constants/             # App constants
-│   └── index.ts          # API endpoints, navigation, etc.
+│   └── index.ts          # API endpoints, categories, currencies
 ├── utils/                 # Utility functions
 └── styles/               # Additional styles
 ```
@@ -115,13 +124,18 @@ Strict TypeScript configuration with:
 
 ## 📦 Key Features
 
+- **Transaction Tracking**: Record income and expenses with detailed categorization
+- **Budget Management**: Set monthly/yearly budgets and track spending against them
+- **Financial Analytics**: Visualize spending patterns and trends
+- **Category Management**: Organize expenses by custom categories
+- **Expense Reports**: Generate detailed financial reports
 - **Error Handling**: Comprehensive error boundaries and error pages
 - **Loading States**: Global and component-level loading indicators
-- **Type Safety**: Full TypeScript coverage
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **Type Safety**: Full TypeScript coverage for financial data
+- **Responsive Design**: Mobile-first approach for on-the-go expense tracking
 - **Modern UI**: Clean, accessible components with shadcn/ui
-- **Custom Hooks**: Reusable React hooks for common functionality
-- **Utility Functions**: Helper functions for common operations
+- **Custom Hooks**: Reusable React hooks for financial calculations
+- **Utility Functions**: Helper functions for currency formatting and calculations
 
 ## 🚀 Production Deployment
 
