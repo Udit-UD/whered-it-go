@@ -5,6 +5,7 @@ A modern financial tracking web application built with Next.js 15, TypeScript, a
 ## 💰 About
 
 "Where'd It Go" is a comprehensive personal finance tracker that helps you:
+
 - Track your income and expenses
 - Categorize your spending
 - Visualize your financial habits
