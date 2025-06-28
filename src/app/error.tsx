@@ -1,28 +1,28 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ErrorProps {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }
 
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Application error:', error)
-  }, [error])
+    console.error('Application error:', error);
+  }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="max-w-md w-full">
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-destructive/10 rounded-full mb-4">
+          <div className="bg-destructive/10 mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">
             <svg
-              className="w-6 h-6 text-destructive"
+              className="text-destructive h-6 w-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -38,10 +38,10 @@ export default function Error({ error, reset }: ErrorProps) {
           <CardTitle>Something went wrong!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-muted-foreground text-center text-sm">
             We encountered an unexpected error. Please try again.
           </p>
-          
+
           {process.env.NODE_ENV === 'development' && (
             <Alert variant="destructive">
               <AlertDescription>
@@ -49,19 +49,19 @@ export default function Error({ error, reset }: ErrorProps) {
                   <summary className="cursor-pointer font-medium">
                     Error details (development only)
                   </summary>
-                  <pre className="mt-2 text-xs overflow-auto whitespace-pre-wrap">
+                  <pre className="mt-2 overflow-auto text-xs whitespace-pre-wrap">
                     {error.message}
                   </pre>
                 </details>
               </AlertDescription>
             </Alert>
           )}
-          
+
           <Button onClick={reset} className="w-full">
             Try again
           </Button>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

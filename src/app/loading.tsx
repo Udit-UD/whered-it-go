@@ -1,21 +1,19 @@
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="max-w-sm w-full">
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
         <CardContent className="flex flex-col items-center space-y-4 p-6">
           <div className="relative">
-            <div className="w-12 h-12 border-4 border-muted border-t-primary rounded-full animate-spin"></div>
+            <div className="border-muted border-t-primary h-12 w-12 animate-spin rounded-full border-4"></div>
           </div>
-          <div className="text-center space-y-2">
+          <div className="space-y-2 text-center">
             <h2 className="text-lg font-semibold">Loading...</h2>
-            <p className="text-sm text-muted-foreground">
-              Please wait while we load your content
-            </p>
+            <p className="text-muted-foreground text-sm">Please wait while we load your content</p>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

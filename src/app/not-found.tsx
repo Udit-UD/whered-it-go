@@ -1,15 +1,15 @@
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="max-w-md w-full">
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center w-12 h-12 mx-auto bg-muted rounded-full mb-4">
+          <div className="bg-muted mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">
             <svg
-              className="w-6 h-6 text-muted-foreground"
+              className="text-muted-foreground h-6 w-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -22,20 +22,18 @@ export default function NotFound() {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold mb-2">404</h2>
+          <h2 className="mb-2 text-2xl font-bold">404</h2>
           <CardTitle>Page Not Found</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-muted-foreground text-center text-sm">
             The page you&apos;re looking for doesn&apos;t exist or has been moved.
           </p>
           <Button asChild className="w-full">
-            <Link href="/">
-              Go back home
-            </Link>
+            <Link href="/">Go back home</Link>
           </Button>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
