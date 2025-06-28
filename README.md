@@ -1,36 +1,146 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Where'd It Go
 
-## Getting Started
+A modern web application built with Next.js 15, TypeScript, and shadcn/ui for tracking and managing your items.
 
-First, run the development server:
+## 🚀 Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **UI Components**: shadcn/ui
+- **Font**: Geist Sans & Geist Mono
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (dashboard)/       # Dashboard route group
+│   ├── api/               # API routes
+│   ├── globals.css        # Global styles with shadcn/ui variables
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Home page
+│   ├── loading.tsx        # Global loading UI
+│   ├── error.tsx          # Global error UI
+│   └── not-found.tsx      # 404 page
+├── components/             # Reusable components
+│   ├── ui/                # shadcn/ui components
+│   │   ├── button.tsx
+│   │   ├── input.tsx
+│   │   ├── card.tsx
+│   │   ├── alert.tsx
+│   │   └── spinner.tsx
+│   ├── layout/            # Layout components
+│   │   └── container.tsx
+│   └── index.ts           # Component exports
+├── hooks/                 # Custom React hooks
+│   └── index.ts          # useLocalStorage, useDebounce, useAsync
+├── lib/                   # Utility functions
+│   └── utils.ts          # cn function and other utilities
+├── types/                 # TypeScript type definitions
+│   └── index.ts          # API types, UI types, etc.
+├── constants/             # App constants
+│   └── index.ts          # API endpoints, navigation, etc.
+├── utils/                 # Utility functions
+└── styles/               # Additional styles
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 18+
+- npm or yarn
 
-## Learn More
+### Getting Started
 
-To learn more about Next.js, take a look at the following resources:
+1. **Install dependencies**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm install
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Run the development server**
 
-## Deploy on Vercel
+   ```bash
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Available Scripts
+
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+## 🎨 shadcn/ui Components
+
+This project uses shadcn/ui for components. The setup includes:
+
+- **Button**: Multiple variants (default, destructive, outline, secondary, ghost, link)
+- **Input**: Form input with proper styling
+- **Card**: Container component with header, content, footer
+- **Alert**: For displaying messages and notifications
+- **Spinner**: Loading indicator
+
+### Adding New Components
+
+To add more shadcn/ui components, you can manually create them in `src/components/ui/` following the shadcn/ui patterns, or use the CLI:
+
+```bash
+npx shadcn@latest add [component-name]
+```
+
+## 🔧 Configuration
+
+### Tailwind CSS
+
+The project uses Tailwind CSS v4 with a custom configuration that includes:
+
+- Dark mode support
+- Custom color system with CSS variables
+- shadcn/ui design tokens
+- Animation utilities
+
+### TypeScript
+
+Strict TypeScript configuration with:
+
+- Path aliases (`@/*` for `src/*`)
+- ESNext module resolution
+- Incremental compilation
+
+## 📦 Key Features
+
+- **Error Handling**: Comprehensive error boundaries and error pages
+- **Loading States**: Global and component-level loading indicators
+- **Type Safety**: Full TypeScript coverage
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **Modern UI**: Clean, accessible components with shadcn/ui
+- **Custom Hooks**: Reusable React hooks for common functionality
+- **Utility Functions**: Helper functions for common operations
+
+## 🚀 Production Deployment
+
+The app is ready for production deployment with:
+
+- Optimized build output
+- Static generation where possible
+- Proper error handling
+- SEO-friendly structure
+- Performance optimizations
+
+### Environment Variables
+
+Create a `.env.local` file for environment variables:
+
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## 📝 License
+
+This project is open source and available under the [MIT License](LICENSE).
