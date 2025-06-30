@@ -140,3 +140,15 @@ export interface TimeSeriesData {
   expenses: number;
   net: number;
 }
+
+export interface Feature {
+  name: string;
+  icon: React.ReactNode;
+  description: string;
+}
+
+export interface Reason {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}

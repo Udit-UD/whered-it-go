@@ -1,13 +1,17 @@
 import React from 'react';
+import { HeroSection, Features, WhyMe, Footer } from './components';
 
 const page = () => {
   return (
-    <div className="flex h-full items-center justify-center">
+    <div className="flex h-auto w-3/4 flex-col items-center justify-center self-center">
       {/* MAIN COMPONENT */}
-
-      <div className="text-center text-2xl font-bold">
-        <h1 className="text-center text-2xl font-bold">Where&apos;d It Go?</h1>
-      </div>
+      <HeroSection />
+      {/* FEATURES */}
+      <Features />
+      {/* ABOUT */}
+      <WhyMe />
+      {/* FOOTER */}
+      <Footer />
     </div>
   );
 };
