@@ -55,4 +55,29 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+
+  /* Custom scrollbar styling for better UX */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* For Firefox */
+  .overflow-x-auto {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) hsl(var(--muted));
+  }
 }

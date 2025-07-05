@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss';
 import tailwindcssAnimate from 'tailwindcss-animate';
+import colors from 'tailwindcss/colors';
 
 const config: Config = {
   darkMode: 'class',
@@ -53,6 +54,24 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Add custom success color for income
+        success: {
+          DEFAULT: '#10b981', // emerald-500
+          foreground: '#ffffff',
+        },
+        // Add custom error color for expenses
+        error: {
+          DEFAULT: '#ef4444', // red-500
+          foreground: '#ffffff',
+        },
+        // Include standard Tailwind colors
+        green: colors.green,
+        red: colors.red,
+        emerald: colors.emerald,
+        blue: colors.blue,
+        yellow: colors.yellow,
+        purple: colors.purple,
+        orange: colors.orange,
       },
       borderRadius: {
         lg: 'var(--radius)',

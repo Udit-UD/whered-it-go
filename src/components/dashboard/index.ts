@@ -4,3 +4,4 @@ export { StreakCounter } from './StreakCounter';
 export { ExpenseCategories } from './ExpenseCategories';
 export { RecentTransactions } from './RecentTransactions';
 export { QuickStats } from './QuickStats';
+export { default as TransactionTable, type TableColumn } from './TransactionTable';

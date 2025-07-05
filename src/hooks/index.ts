@@ -105,7 +105,7 @@ export function useBudgetCalculations(budgets: Budget[], transactions: Transacti
   useEffect(() => {
     const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
     const totalSpent = transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.transactionType === 'expense')
       .reduce((sum, transaction) => sum + transaction.amount, 0);
 
     const utilization = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
@@ -133,11 +133,11 @@ export function useFinancialSummary(transactions: Transaction[]) {
 
   useEffect(() => {
     const income = transactions
-      .filter(t => t.type === 'income')
+      .filter(t => t.transactionType === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const expenses = transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.transactionType === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
     setSummary({
