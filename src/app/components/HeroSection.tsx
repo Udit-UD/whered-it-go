@@ -17,7 +17,7 @@ const HeroSection = () => {
             Let&apos;s Explore
           </Button>
           <Button size="sm" variant="secondary">
-            I&apos;m Berozgar
+            I&apos;ve No Money
           </Button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 // ** EXTERNAL IMPORTS **
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import _ from 'lodash';
 
 // ** INTERNAL IMPORTS **
@@ -26,65 +26,6 @@ const Card = ({ feature }: { feature: Feature }) => {
 };
 
 const Features = () => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const animationIdRef = useRef<number>(0);
-  const isAutoScrollingRef = useRef<boolean>(true);
-
-  useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) return;
-
-    const scrollSpeed = 1; // pixels per frame
-
-    const autoScroll = () => {
-      if (!scrollContainer || !isAutoScrollingRef.current) return;
-
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
-      const oneSetWidth = (scrollWidth - clientWidth) / 2; // Adjusted calculation
-
-      // If we've scrolled past one complete set, reset to the beginning
-      if (scrollLeft >= oneSetWidth) {
-        scrollContainer.scrollLeft = 0;
-      } else {
-        scrollContainer.scrollLeft += scrollSpeed;
-      }
-
-      animationIdRef.current = requestAnimationFrame(autoScroll);
-    };
-
-    // Start auto-scrolling
-    animationIdRef.current = requestAnimationFrame(autoScroll);
-
-    // Pause auto-scroll on hover
-    const handleMouseEnter = () => {
-      isAutoScrollingRef.current = false;
-      if (animationIdRef.current) {
-        cancelAnimationFrame(animationIdRef.current);
-      }
-    };
-
-    const handleMouseLeave = () => {
-      isAutoScrollingRef.current = true;
-      animationIdRef.current = requestAnimationFrame(autoScroll);
-    };
-
-    scrollContainer.addEventListener('mouseenter', handleMouseEnter);
-    scrollContainer.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      if (animationIdRef.current) {
-        cancelAnimationFrame(animationIdRef.current);
-      }
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('mouseenter', handleMouseEnter);
-        scrollContainer.removeEventListener('mouseleave', handleMouseLeave);
-      }
-    };
-  }, []);
-
-  // Duplicate features for infinite scroll effect
-  const duplicatedFeatures = [...FEATURES, ...FEATURES];
-
   return (
     <section className="w-full py-16">
       <div className="mx-auto max-w-6xl px-4">
@@ -97,7 +38,6 @@ const Features = () => {
         {/* Features Scroll */}
         <div className="relative">
           <div
-            ref={scrollContainerRef}
             className="overflow-x-auto"
             style={{
               scrollBehavior: 'auto',
@@ -106,7 +46,7 @@ const Features = () => {
             }}
           >
             <div className="flex gap-6 p-4" style={{ width: 'max-content' }}>
-              {_.map(duplicatedFeatures, (feature: Feature, index: number) => (
+              {_.map(FEATURES, (feature: Feature, index: number) => (
                 <Card key={`${feature.name}-${index}`} feature={feature} />
               ))}
             </div>
