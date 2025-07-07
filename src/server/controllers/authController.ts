@@ -5,19 +5,45 @@ import { generateToken } from '../services/authService';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 import Logger from '../config/logger';
+import firebaseAdmin from '../firebaseAdmin';
 
-// Validation middleware for registration
+// Enhanced validation middleware for registration
 export const validateRegister = [
-  body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 }),
-  body('firstName').trim().isLength({ min: 1, max: 50 }),
-  body('lastName').trim().isLength({ min: 1, max: 50 }),
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage(
+      'Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character'
+    ),
+  body('firstName')
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('First name must be between 1 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('First name can only contain letters and spaces'),
+  body('lastName')
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Last name must be between 1 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('Last name can only contain letters and spaces'),
 ];
 
 // Validation middleware for login
 export const validateLogin = [
-  body('email').isEmail().normalizeEmail(),
-  body('password').notEmpty(),
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('password').notEmpty().withMessage('Password is required'),
+];
+
+// Validation for Google OAuth
+export const validateGoogleLogin = [
+  body('idToken')
+    .notEmpty()
+    .withMessage('Google ID token is required')
+    .isLength({ min: 100 })
+    .withMessage('Invalid Google ID token format'),
 ];
 
 // @desc    Register a new user
@@ -46,12 +72,14 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  // Create user
+  // Create user with local auth provider
   const user = await User.create({
     email,
     password,
     firstName,
     lastName,
+    authProvider: 'local',
+    emailVerified: false, // In production, implement email verification
   });
 
   // Generate token
@@ -68,6 +96,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        authProvider: user.authProvider,
+        emailVerified: user.emailVerified,
       },
       token,
     },
@@ -91,7 +121,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   // Check for user and include password for comparison
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email }).select('+password +failedLoginAttempts +lockUntil');
   if (!user) {
     res.status(401).json({
       success: false,
@@ -100,14 +130,49 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
+  // Check if account is locked
+  if (user.isAccountLocked()) {
+    res.status(423).json({
+      success: false,
+      message:
+        'Account temporarily locked due to too many failed login attempts. Please try again later.',
+    });
+    return;
+  }
+
+  // Check if this is a Google OAuth user trying to login with password
+  if (user.authProvider === 'google') {
+    res.status(400).json({
+      success: false,
+      message: 'This account uses Google sign-in. Please use the Google login button.',
+    });
+    return;
+  }
+
   // Check password
   const isPasswordValid = await user.matchPassword(password);
   if (!isPasswordValid) {
+    // Increment failed login attempts
+    await user.incLoginAttempts();
+
     res.status(401).json({
       success: false,
       message: 'Invalid email or password',
     });
     return;
+  }
+
+  // Reset failed login attempts on successful login
+  if (user.failedLoginAttempts > 0) {
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $unset: { lockUntil: 1 },
+        $set: { failedLoginAttempts: 0, lastLogin: new Date() },
+      }
+    );
+  } else {
+    await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
   }
 
   // Generate token
@@ -124,10 +189,124 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        authProvider: user.authProvider,
+        lastLogin: new Date(),
       },
       token,
     },
   });
+});
+
+export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: errors.array(),
+    });
+    return;
+  }
+
+  const { idToken } = req.body;
+
+  try {
+    // Verify the Google ID token with enhanced validation
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken, true);
+
+    // Additional security checks
+    if (!decodedToken.email_verified) {
+      res.status(400).json({
+        success: false,
+        message: 'Google account email is not verified',
+      });
+      return;
+    }
+
+    // Check token freshness (issued within last 5 minutes)
+    const now = Math.floor(Date.now() / 1000);
+    if (now - decodedToken.iat > 300) {
+      // 5 minutes
+      res.status(401).json({
+        success: false,
+        message: 'Google ID token is too old',
+      });
+      return;
+    }
+
+    const { email, name, sub: googleId } = decodedToken;
+
+    if (!email || !name || !googleId) {
+      res.status(400).json({
+        success: false,
+        message: 'Required user information not available from Google',
+      });
+      return;
+    }
+
+    // Check if user already exists
+    let user = await User.findOne({
+      $or: [{ email }, { googleId }],
+    });
+
+    if (user) {
+      // If user exists with same email but different auth provider
+      if (user.authProvider === 'local' && !user.googleId) {
+        res.status(400).json({
+          success: false,
+          message:
+            'An account with this email already exists. Please sign in with your password instead.',
+        });
+        return;
+      }
+
+      // Update last login
+      user.lastLogin = new Date();
+      await user.save();
+    } else {
+      // Create new user if not found
+      const nameParts = name.split(' ');
+      user = await User.create({
+        email,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        authProvider: 'google',
+        googleId,
+        emailVerified: true, // Google accounts are pre-verified
+        lastLogin: new Date(),
+      });
+    }
+
+    // Generate token
+    const token = generateToken(user._id, user.email);
+
+    Logger.info(`User logged in with Google: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Google login successful',
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          authProvider: user.authProvider,
+          emailVerified: user.emailVerified,
+          lastLogin: user.lastLogin,
+        },
+        token,
+      },
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    Logger.error(`Google login failed: ${errorMessage}`);
+
+    res.status(401).json({
+      success: false,
+      message: 'Invalid Google ID token',
+    });
+  }
 });
 
 // @desc    Get current user profile
