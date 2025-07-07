@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import _ from 'lodash';
 import { format } from 'date-fns';
 import { CalendarIcon, EditIcon, SaveIcon, XIcon, TrashIcon } from 'lucide-react';
 import {
@@ -22,9 +23,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
-import { cn } from '@/lib/utils';
+import { cn, generateRandomId } from '@/lib/utils';
 import { Transaction, Category } from '@/types';
-import _ from 'lodash';
 import { TRANSACTION_TYPES } from '@/constants';
 
 export interface TableColumn {
@@ -48,7 +48,7 @@ interface TransactionTableProps {
   data: Transaction[];
   categories: Category[];
   isLoading?: boolean;
-  onAdd?: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAdd?: (transaction: Omit<Transaction, 'createdAt' | 'updatedAt'>) => void;
   onEdit?: (id: string, transaction: Partial<Transaction>) => void;
   onDelete?: (id: string) => void;
   showActions?: boolean;
@@ -146,6 +146,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         transactionType: editingData.transactionType,
         date: format(editingData.date, 'yyyy-MM-dd'),
         userId: '1', // This should come from user context
+        id: editingData.id,
       };
       onAdd(newTransaction);
     }
@@ -168,7 +169,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const handleAddNew = () => {
     setIsAdding(true);
     setEditingData({
-      id: '',
+      id: generateRandomId(),
       description: '',
       amount: '',
       categoryId: categories[0]?.id || '',
@@ -244,12 +245,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     );
   };
 
-  const renderCellContent = (transaction: Transaction, column: TableColumn) => {
+  const renderCellContent = (transaction: Transaction, column: TableColumn, index: number) => {
     const isEditing = editingId === transaction.id && editingData;
     switch (column.key) {
       case 'id':
-        return <span className="font-mono text-sm">#{transaction.id.slice(-4)}</span>;
-
+        return <span className="font-mono text-sm">{index + 1}</span>;
       case 'title':
       case 'description':
         return isEditing ? (
@@ -382,15 +382,15 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map(transaction => (
+          {data.map((transaction, index) => (
             <TableRow key={transaction.id}>
-              {columns.map(column => (
+              {_.map(columns, column => (
                 <TableCell
                   key={column.key}
                   className={column.className}
                   style={{ width: column.width, minWidth: column.width }}
                 >
-                  {renderCellContent(transaction, column)}
+                  {renderCellContent(transaction, column, index)}
                 </TableCell>
               ))}
               {showActions && (
@@ -444,7 +444,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 className="text-muted-foreground p-2"
                 style={{ width: columns[0]?.width, minWidth: columns[0]?.width }}
               >
-                New
+                {_.size(data) + 1}
               </TableCell>
               {columns.slice(1).map(column => (
                 <TableCell

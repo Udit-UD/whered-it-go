@@ -100,3 +100,12 @@ export function generateCategoryColor(): string {
 export function isPositiveNumber(value: unknown): value is number {
   return typeof value === 'number' && value > 0 && !isNaN(value);
 }
+
+export const generateRandomId = (length: number = 8): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let id = 'NEW_';
+  for (let i = 0; i < length; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return id;
+};

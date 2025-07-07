@@ -138,11 +138,10 @@ const TransactionPage = () => {
   }, [transactions]);
 
   const handleAddTransaction = (
-    newTransactionData: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>
+    newTransactionData: Omit<Transaction, 'createdAt' | 'updatedAt'>
   ) => {
     const newTransaction: Transaction = {
       ...newTransactionData,
-      id: Date.now().toString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
