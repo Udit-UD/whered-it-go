@@ -109,3 +109,7 @@ export const generateRandomId = (length: number = 8): string => {
   }
   return id;
 };
+
+export const getFullName = (firstName: string, lastName: string): string => {
+  return `${firstName} ${lastName}`.trim();
+};

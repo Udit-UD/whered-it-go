@@ -1,24 +1,25 @@
 'use client';
 
-import { UserProfile } from '@/components/dashboard/UserProfile';
-import { BudgetOverview } from '@/components/dashboard/BudgetOverview';
-import { StreakCounter } from '@/components/dashboard/StreakCounter';
-import { ExpenseCategories } from '@/components/dashboard/ExpenseCategories';
-import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
-import { QuickStats } from '@/components/dashboard/QuickStats';
+import { useEffect } from 'react';
+import _ from 'lodash';
+import { toast } from 'sonner';
+import { useDispatch, useSelector } from 'react-redux';
+
+import {
+  UserProfile,
+  BudgetOverview,
+  StreakCounter,
+  ExpenseCategories,
+  RecentTransactions,
+  QuickStats,
+} from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import ExpenseLogModal from '@/components/commonComponents/ExpenseLogModal';
 import apiService from '@/lib/apiService';
-import { useEffect } from 'react';
-import { toast } from 'sonner';
-
-// Dummy data
-const userData = {
-  name: 'John Doe',
-  email: 'john.doe@example.com',
-  profileImage: '',
-};
+import { setUser } from '@/store/slices/userSlice';
+import { getFullName } from '@/lib/utils';
+import { RootState } from '@/store';
 
 const budgetData = {
   monthlyBudget: 25000,
@@ -114,7 +115,23 @@ const quickStats = {
   monthlyChange: 12.5,
 };
 
+interface UserProfileApiResponse {
+  data: {
+    user: {
+      name: string;
+      email: string;
+      profileImage: string;
+      firstName: string;
+      lastName: string;
+      id: string;
+    };
+  };
+}
+
 export default function DashboardPage() {
+  const userData = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
+
   const getCurrentMonthAndYear = () => {
     const date = new Date();
     const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' };
@@ -124,7 +141,10 @@ export default function DashboardPage() {
   const onImageUpload = async (url: string) => {
     try {
       const response = await apiService.patch('/users/', { imageUrl: url });
-      if (response.success) toast.success('Profile image updated successfully!');
+      if (response.success) {
+        toast.success('Profile image updated successfully');
+        dispatch(setUser({ profilePicture: url }));
+      }
     } catch (error) {
       toast.error('Failed to upload profile image');
       console.error('Error uploading image:', error);
@@ -133,8 +153,12 @@ export default function DashboardPage() {
 
   const getUserProfile = async () => {
     try {
-      const response = await apiService.get('/users/');
-      console.log(response.data);
+      const response = await apiService.get<UserProfileApiResponse>('/users/');
+      if (response.data) {
+        const userData = _.get(response.data.data, 'user', {});
+        console.log({ userData });
+        dispatch(setUser(userData));
+      }
     } catch (error) {
       console.error('Error fetching user info:', error);
       return null;
@@ -169,9 +193,9 @@ export default function DashboardPage() {
       {/* Top Row - User Profile and Budget Overview */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <UserProfile
-          name={userData.name}
+          name={getFullName(userData.firstName, userData.lastName)}
           email={userData.email}
-          profileImage={userData.profileImage}
+          profileImage={userData.profilePicture}
           className="lg:col-span-1"
           allowUpload={true}
           onProfileImageUpload={onImageUpload}

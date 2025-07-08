@@ -53,18 +53,15 @@ export const handleRedirectResult = async (): Promise<AuthResponse | null> => {
 
 // Shared function to send token to backend
 const sendTokenToBackend = async (idToken: string): Promise<AuthResponse> => {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/oauth/google`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ idToken }),
-    }
-  );
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/oauth/google`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ idToken }),
+  });
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -72,7 +69,7 @@ const sendTokenToBackend = async (idToken: string): Promise<AuthResponse> => {
   }
 
   const data: AuthResponse = await response.json();
-
+  console.log({ data });
   if (!data.success) {
     throw new Error(data.message || 'Authentication failed');
   }

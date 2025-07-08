@@ -1,18 +1,34 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useDispatch, useSelector } from 'react-redux';
+import _ from 'lodash';
 import Link from 'next/link';
+
 import { Container } from '@/components/layout/container';
 import { Button } from '@/components/ui/button';
 import handleGoogleLogin, { handleRedirectResult } from '@/lib/auth';
+import { RootState } from '@/store';
+import { clearUser, setUser } from '@/store/slices/userSlice';
 
 const Navbar = () => {
+  const user = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
+  const router = useRouter();
+
   useEffect(() => {
     const checkRedirectResult = async () => {
       try {
         const result = await handleRedirectResult();
         if (result) {
           if (result.success) {
+            const userData = { ..._.get(result, 'data.user', {}), isAuthenticated: true };
+            console.log('Google login successful:', userData);
+            dispatch(setUser(userData));
+            toast.success('Login successful!');
+            router.push('/dashboard');
             console.log('Redirect login successful:', result);
           } else {
             console.error('Redirect login failed:', result.message);
@@ -31,10 +47,14 @@ const Navbar = () => {
     try {
       const result = await handleGoogleLogin({
         onSuccess: response => {
-          console.log('Login successful:', response);
+          const userData = { ..._.get(response, 'data.user', {}), isAuthenticated: true };
+          console.log('Google login successful:', userData);
+          dispatch(setUser(userData));
+          toast.success('Login successful!');
+          router.push('/dashboard');
         },
         onError: error => {
-          console.error('Login failed:', error);
+          toast.error(`Login failed: ${_.get(error, 'message', 'An error occurred')}`);
         },
       });
 
@@ -52,6 +72,13 @@ const Navbar = () => {
       }
     }
   };
+
+  const onLogout = () => {
+    dispatch(clearUser());
+    toast.success('Logged out successfully');
+    router.push('/');
+  };
+
   return (
     <div className="bg-background/80 sticky top-0 z-50 border-b backdrop-blur-sm">
       <Container>
@@ -101,10 +128,20 @@ const Navbar = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={onGoogleLogin}>
-              Sign In
-            </Button>
-            <Button size="sm">Get Started</Button>
+            {user.isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={onLogout}>
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={onGoogleLogin}>
+                  Sign In
+                </Button>
+                <Button size="sm">Get Started</Button>
+              </>
+            )}
           </div>
         </div>
       </Container>
