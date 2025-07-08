@@ -24,6 +24,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/server/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", ".next", "src/app", "src/components"]
 }
