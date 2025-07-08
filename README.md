@@ -20,41 +20,6 @@ A modern financial tracking web application built with Next.js 15, TypeScript, a
 - **UI Components**: shadcn/ui
 - **Font**: Geist Sans & Geist Mono
 
-## 📁 Project Structure
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (dashboard)/       # Dashboard route group for financial overview
-│   ├── api/               # API routes for transactions, budgets, etc.
-│   ├── globals.css        # Global styles with shadcn/ui variables
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Home page
-│   ├── loading.tsx        # Global loading UI
-│   ├── error.tsx          # Global error UI
-│   └── not-found.tsx      # 404 page
-├── components/             # Reusable components
-│   ├── ui/                # shadcn/ui components
-│   │   ├── button.tsx
-│   │   ├── input.tsx
-│   │   ├── card.tsx
-│   │   ├── alert.tsx
-│   │   └── spinner.tsx
-│   ├── layout/            # Layout components
-│   │   └── container.tsx
-│   └── index.ts           # Component exports
-├── hooks/                 # Custom React hooks
-│   └── index.ts          # useLocalStorage, useDebounce, useAsync
-├── lib/                   # Utility functions
-│   └── utils.ts          # cn function and other utilities
-├── types/                 # TypeScript type definitions
-│   └── index.ts          # Transaction types, Budget types, etc.
-├── constants/             # App constants
-│   └── index.ts          # API endpoints, categories, currencies
-├── utils/                 # Utility functions
-└── styles/               # Additional styles
-```
-
 ## 🛠️ Development
 
 ### Prerequisites
