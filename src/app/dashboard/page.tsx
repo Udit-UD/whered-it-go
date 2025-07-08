@@ -9,6 +9,9 @@ import { QuickStats } from '@/components/dashboard/QuickStats';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import ExpenseLogModal from '@/components/commonComponents/ExpenseLogModal';
+import apiService from '@/lib/apiService';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 // Dummy data
 const userData = {
@@ -118,6 +121,30 @@ export default function DashboardPage() {
     return date.toLocaleDateString('en-US', options);
   };
 
+  const onImageUpload = async (url: string) => {
+    try {
+      const response = await apiService.patch('/users/', { imageUrl: url });
+      if (response.success) toast.success('Profile image updated successfully!');
+    } catch (error) {
+      toast.error('Failed to upload profile image');
+      console.error('Error uploading image:', error);
+    }
+  };
+
+  const getUserProfile = async () => {
+    try {
+      const response = await apiService.get('/users/');
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    getUserProfile();
+  }, []);
+
   return (
     <div className="mx-auto w-3/4 space-y-6 p-6">
       {/* Header */}
@@ -146,6 +173,8 @@ export default function DashboardPage() {
           email={userData.email}
           profileImage={userData.profileImage}
           className="lg:col-span-1"
+          allowUpload={true}
+          onProfileImageUpload={onImageUpload}
         />
         <BudgetOverview
           monthlyBudget={budgetData.monthlyBudget}

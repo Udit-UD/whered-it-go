@@ -7,7 +7,7 @@ import {
   validateLogin,
   validateGoogleLogin,
   googleLogin,
-} from '../controllers/authController';
+} from '../controllers/auth.Controller';
 import { authenticate } from '../middleware/authMiddleware';
 
 const router = express.Router();

@@ -79,7 +79,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     firstName,
     lastName,
     authProvider: 'local',
-    emailVerified: false, // In production, implement email verification
   });
 
   // Generate token
@@ -97,7 +96,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         firstName: user.firstName,
         lastName: user.lastName,
         authProvider: user.authProvider,
-        emailVerified: user.emailVerified,
       },
       token,
     },
@@ -121,21 +119,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   // Check for user and include password for comparison
-  const user = await User.findOne({ email }).select('+password +failedLoginAttempts +lockUntil');
+  const user = await User.findOne({ email }).select('+password');
   if (!user) {
     res.status(401).json({
       success: false,
       message: 'Invalid email or password',
-    });
-    return;
-  }
-
-  // Check if account is locked
-  if (user.isAccountLocked()) {
-    res.status(423).json({
-      success: false,
-      message:
-        'Account temporarily locked due to too many failed login attempts. Please try again later.',
     });
     return;
   }
@@ -152,27 +140,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   // Check password
   const isPasswordValid = await user.matchPassword(password);
   if (!isPasswordValid) {
-    // Increment failed login attempts
-    await user.incLoginAttempts();
-
     res.status(401).json({
       success: false,
       message: 'Invalid email or password',
     });
     return;
-  }
-
-  // Reset failed login attempts on successful login
-  if (user.failedLoginAttempts > 0) {
-    await User.updateOne(
-      { _id: user._id },
-      {
-        $unset: { lockUntil: 1 },
-        $set: { failedLoginAttempts: 0, lastLogin: new Date() },
-      }
-    );
-  } else {
-    await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
   }
 
   // Generate token
@@ -272,7 +244,6 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
         lastName: nameParts.slice(1).join(' ') || '',
         authProvider: 'google',
         googleId,
-        emailVerified: true, // Google accounts are pre-verified
         lastLogin: new Date(),
       });
     }
@@ -292,7 +263,6 @@ export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
           firstName: user.firstName,
           lastName: user.lastName,
           authProvider: user.authProvider,
-          emailVerified: user.emailVerified,
           lastLogin: user.lastLogin,
         },
         token,

@@ -10,7 +10,6 @@ interface AuthResponse {
       firstName: string;
       lastName: string;
       authProvider: string;
-      emailVerified: boolean;
     };
     token: string;
   };

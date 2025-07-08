@@ -7,17 +7,14 @@ export interface IUser extends Document {
   password?: string;
   firstName: string;
   lastName: string;
+  profilePicture?: string;
   authProvider: 'local' | 'google';
   googleId?: string;
-  emailVerified: boolean;
   lastLogin?: Date;
-  failedLoginAttempts: number;
   lockUntil?: Date;
   createdAt: Date;
   updatedAt: Date;
   matchPassword(enteredPassword: string): Promise<boolean>;
-  isAccountLocked(): boolean;
-  incLoginAttempts(): Promise<IUser>;
 }
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -60,6 +57,9 @@ const userSchema = new Schema<IUser>(
       trim: true,
       maxlength: [50, 'Last name cannot be more than 50 characters'],
     },
+    profilePicture: {
+      type: String,
+    },
     authProvider: {
       type: String,
       enum: ['local', 'google'],
@@ -69,18 +69,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       sparse: true,
     },
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
     lastLogin: {
-      type: Date,
-    },
-    failedLoginAttempts: {
-      type: Number,
-      default: 0,
-    },
-    lockUntil: {
       type: Date,
     },
   },
@@ -111,25 +100,6 @@ userSchema.methods.matchPassword = async function (enteredPassword: string): Pro
 
 userSchema.methods.isAccountLocked = function (): boolean {
   return !!(this.lockUntil && this.lockUntil > Date.now());
-};
-
-userSchema.methods.incLoginAttempts = function (): Promise<IUser> {
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    return this.updateOne({
-      $unset: { lockUntil: 1 },
-      $set: { failedLoginAttempts: 1 },
-    });
-  }
-
-  const updates: { $inc: { failedLoginAttempts: number }; $set?: { lockUntil: number } } = {
-    $inc: { failedLoginAttempts: 1 },
-  };
-
-  if (this.failedLoginAttempts + 1 >= 5 && !this.isAccountLocked()) {
-    updates.$set = { lockUntil: Date.now() + 30 * 60 * 1000 };
-  }
-
-  return this.updateOne(updates);
 };
 
 const User = mongoose.model<IUser>('User', userSchema);

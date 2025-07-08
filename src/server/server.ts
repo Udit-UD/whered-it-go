@@ -12,7 +12,7 @@ import { errorHandler, notFound } from './middleware/errorMiddleware';
 
 // Import routes (we'll create these next)
 import authRoutes from './routes/authRoutes';
-// import userRoutes from './routes/userRoutes';
+import userRoutes from './routes/userRoutes';
 // import categoryRoutes from './routes/categoryRoutes';
 // import transactionRoutes from './routes/transactionRoutes';
 
@@ -56,7 +56,7 @@ app.use(
 
 // API routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes);
 // app.use('/api/categories', categoryRoutes);
 // app.use('/api/transactions', transactionRoutes);
 

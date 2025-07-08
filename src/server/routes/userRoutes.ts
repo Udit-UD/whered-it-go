@@ -1,15 +1,10 @@
 import express from 'express';
+import { authenticate } from '../middleware/authMiddleware';
+import { updateProfile, getUserProfile } from '../controllers/user.controller';
 
 const router = express.Router();
 
-// @desc    Get user profile
-// @route   GET /api/users/profile
-// @access  Private
-router.get('/profile', (req, res) => {
-  res.json({
-    success: true,
-    message: 'User routes will be implemented here',
-  });
-});
+router.get('/', authenticate, getUserProfile);
+router.patch('/', authenticate, updateProfile);
 
 export default router;
