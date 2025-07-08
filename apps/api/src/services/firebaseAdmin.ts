@@ -9,7 +9,7 @@ if (!admin.apps.length) {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
       ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
       : JSON.parse(
-          fs.readFileSync(path.resolve(__dirname, './config/serviceAccountKey.json'), 'utf8')
+          fs.readFileSync(path.resolve(__dirname, '../config/serviceAccountKey.json'), 'utf8')
         );
 
     admin.initializeApp({

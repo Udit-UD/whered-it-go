@@ -5,7 +5,7 @@ import { generateToken } from '../services/authService';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware';
 import Logger from '../config/logger';
-import firebaseAdmin from '../firebaseAdmin';
+import firebaseAdmin from '../services/firebaseAdmin';
 
 // Enhanced validation middleware for registration
 export const validateRegister = [
