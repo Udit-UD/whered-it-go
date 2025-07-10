@@ -1,4 +1,4 @@
-import { signInWithPopup, signInWithRedirect, getRedirectResult, AuthError } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, AuthError } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
 
 interface AuthResponse {
@@ -22,34 +22,6 @@ interface GoogleLoginOptions {
   onError?: (error: string) => void;
   useRedirect?: boolean; // Option to use redirect instead of popup
 }
-
-// Function to detect if popups are likely to be blocked
-const isPopupLikelyBlocked = (): boolean => {
-  // Check if we're on mobile (popups often don't work well on mobile)
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-  return isMobile;
-};
-
-// Function to handle redirect result (call this on page load)
-export const handleRedirectResult = async (): Promise<AuthResponse | null> => {
-  try {
-    const result = await getRedirectResult(auth);
-    if (!result || !result.user) {
-      return null; // No redirect result
-    }
-
-    const idToken = await result.user.getIdToken(true);
-    return await sendTokenToBackend(idToken);
-  } catch (error) {
-    console.error('Error handling redirect result:', error);
-    return {
-      success: false,
-      message: 'Failed to complete redirect authentication',
-    };
-  }
-};
 
 // Shared function to send token to backend
 const sendTokenToBackend = async (idToken: string): Promise<AuthResponse> => {
@@ -88,7 +60,7 @@ const handleGoogleLogin = async (options?: GoogleLoginOptions): Promise<AuthResp
     await auth.signOut();
 
     // First, try popup method unless on mobile or explicitly requested redirect
-    let shouldTryRedirect = options?.useRedirect || isPopupLikelyBlocked();
+    let shouldTryRedirect = options?.useRedirect;
 
     if (!shouldTryRedirect) {
       try {

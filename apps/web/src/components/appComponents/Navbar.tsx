@@ -1,54 +1,27 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import Link from 'next/link';
 
 import { Container } from '@/components/layout/container';
 import { Button } from '@/components/ui/button';
-import handleGoogleLogin, { handleRedirectResult } from '@/lib/auth';
-import { RootState } from '@/store';
+import handleGoogleLogin from '@/lib/auth';
 import { clearUser, setUser } from '@/store/slices/userSlice';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 
 const Navbar = () => {
-  const user = useSelector((state: RootState) => state.user);
-  const dispatch = useDispatch();
+  const user = useAppSelector((state) => state.user);
+  const dispatch = useAppDispatch();
   const router = useRouter();
-
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      try {
-        const result = await handleRedirectResult();
-        if (result) {
-          if (result.success) {
-            const userData = { ..._.get(result, 'data.user', {}), isAuthenticated: true };
-            console.log('Google login successful:', userData);
-            dispatch(setUser(userData));
-            toast.success('Login successful!');
-            router.push('/dashboard');
-            console.log('Redirect login successful:', result);
-          } else {
-            console.error('Redirect login failed:', result.message);
-            alert(`Login failed: ${result.message}`);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking redirect result:', error);
-      }
-    };
-
-    checkRedirectResult();
-  }, []);
 
   const onGoogleLogin = async () => {
     try {
-      const result = await handleGoogleLogin({
+      await handleGoogleLogin({
         onSuccess: response => {
           const userData = { ..._.get(response, 'data.user', {}), isAuthenticated: true };
-          console.log('Google login successful:', userData);
           dispatch(setUser(userData));
           toast.success('Login successful!');
           router.push('/dashboard');
@@ -57,19 +30,9 @@ const Navbar = () => {
           toast.error(`Login failed: ${_.get(error, 'message', 'An error occurred')}`);
         },
       });
-
-      if (result.success) {
-        if (result.message?.includes('Redirecting')) {
-          console.log('Redirecting to Google...');
-          return;
-        }
-        console.log('Google login completed successfully');
-      }
     } catch (error) {
       console.error('Unexpected error during login:', error);
-      if (!String(error).includes('popup-blocked')) {
-        alert('An unexpected error occurred. Please try again.');
-      }
+      toast.error('An unexpected error occurred. Please try again.');
     }
   };
 
