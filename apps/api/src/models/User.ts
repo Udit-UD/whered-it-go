@@ -8,6 +8,7 @@ export interface IUser extends Document {
   firstName: string;
   lastName: string;
   profilePicture?: string;
+  monthlyBudget?: number;
   authProvider: 'local' | 'google';
   googleId?: string;
   lastLogin?: Date;
@@ -59,6 +60,11 @@ const userSchema = new Schema<IUser>(
     },
     profilePicture: {
       type: String,
+    },
+    monthlyBudget: {
+      type: Number,
+      default: 0,
+      min: [0, 'Monthly budget cannot be negative'],
     },
     authProvider: {
       type: String,

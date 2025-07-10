@@ -6,6 +6,7 @@ export interface UserState {
   profilePicture: string;
   isAuthenticated: boolean;
   email: string;
+  monthlyBudget?: number; // Optional field for monthly budget
 }
 
 const initialState: UserState = {
@@ -14,6 +15,7 @@ const initialState: UserState = {
   profilePicture: '',
   isAuthenticated: false,
   email: '',
+  monthlyBudget: 0, // Initialize as zero
 };
 
 const userSlice = createSlice({

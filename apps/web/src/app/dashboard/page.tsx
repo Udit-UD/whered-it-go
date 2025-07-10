@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import _ from 'lodash';
 import { toast } from 'sonner';
-import { useDispatch, useSelector } from 'react-redux';
 
 import {
   UserProfile,
@@ -19,10 +18,10 @@ import ExpenseLogModal from '@/components/commonComponents/ExpenseLogModal';
 import apiService from '@/lib/apiService';
 import { setUser } from '@/store/slices/userSlice';
 import { getFullName } from '@/lib/utils';
-import { RootState } from '@/store';
+import { MODE_OPTIONS } from './utils';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 
 const budgetData = {
-  monthlyBudget: 25000,
   currentExpenses: 18500,
   currency: '₹',
 };
@@ -129,8 +128,11 @@ interface UserProfileApiResponse {
 }
 
 export default function DashboardPage() {
-  const userData = useSelector((state: RootState) => state.user);
-  const dispatch = useDispatch();
+  const [mode, setMode] = useState(MODE_OPTIONS.VIEW);
+
+  const userData = useAppSelector(state => state.user);
+  const [budget, setBudget] = useState(userData.monthlyBudget || 0);
+  const dispatch = useAppDispatch();
 
   const getCurrentMonthAndYear = () => {
     const date = new Date();
@@ -138,16 +140,33 @@ export default function DashboardPage() {
     return date.toLocaleDateString('en-US', options);
   };
 
-  const onImageUpload = async (url: string) => {
+  const updateProfile = async (payload: object) => {
     try {
-      const response = await apiService.patch('/users/', { imageUrl: url });
+      const response = await apiService.patch('/users/', payload);
       if (response.success) {
-        toast.success('Profile image updated successfully');
-        dispatch(setUser({ profilePicture: url }));
+        dispatch(setUser({ ...userData, ...payload }));
+        return { success: true };
+      } else {
+        throw new Error(response.message || 'Failed to update profile');
       }
     } catch (error) {
-      toast.error('Failed to upload profile image');
-      console.error('Error uploading image:', error);
+      console.error('Error updating profile:', error);
+      return { success: false, message: 'Failed to update profile' };
+    }
+  };
+
+  const onImageUpload = async (url: string) => {
+    const payload = {
+      imageUrl: url,
+    };
+    const result = await updateProfile(payload);
+    if (!result.success) {
+      toast.error(result.message || 'Failed to update profile image');
+      return;
+    } else {
+      toast.success('Profile image updated successfully');
+      dispatch(setUser({ profilePicture: url }));
+      return;
     }
   };
 
@@ -169,6 +188,36 @@ export default function DashboardPage() {
     getUserProfile();
   }, []);
 
+  // STATE UPDATE FUNCTIONS
+  const toggleEditBudget = () => {
+    setMode(mode === MODE_OPTIONS.VIEW ? MODE_OPTIONS.UPDATE : MODE_OPTIONS.VIEW);
+  };
+
+  const onCancel = () => {
+    setMode(MODE_OPTIONS.VIEW);
+    setBudget(userData.monthlyBudget || 0);
+  };
+
+  const onBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (isNaN(Number(value))) return;
+
+    setBudget(Number(value));
+  };
+
+  const onBudgetSave = async () => {
+    const payload = {
+      monthlyBudget: budget,
+    };
+    const result = await updateProfile(payload);
+    if (result.success) {
+      toast.success('Budget updated successfully');
+      setMode(MODE_OPTIONS.VIEW);
+    } else {
+      toast.error('Failed to update budget');
+    }
+  };
+
   return (
     <div className="mx-auto w-3/4 space-y-6 p-6">
       {/* Header */}
@@ -180,13 +229,26 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline" size="sm">
-            Export Data
-          </Button>
-          <Dialog>
-            <DialogTrigger size="sm">Add Expense</DialogTrigger>
-            <ExpenseLogModal />
-          </Dialog>
+          {mode === MODE_OPTIONS.VIEW ? (
+            <>
+              <Button variant="outline" size="sm" onClick={toggleEditBudget}>
+                Edit Budget
+              </Button>
+              <Dialog>
+                <DialogTrigger size="sm">Add Expense</DialogTrigger>
+                <ExpenseLogModal />
+              </Dialog>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button className="bg-white text-black" size="sm" onClick={onBudgetSave}>
+                Save
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -201,9 +263,11 @@ export default function DashboardPage() {
           onProfileImageUpload={onImageUpload}
         />
         <BudgetOverview
-          monthlyBudget={budgetData.monthlyBudget}
+          monthlyBudget={budget}
           currentExpenses={budgetData.currentExpenses}
           currency={budgetData.currency}
+          mode={mode}
+          onBudgetChange={onBudgetChange}
           className="lg:col-span-2"
         />
       </div>

@@ -1,18 +1,24 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Input } from '../ui/input';
+import { IndianRupee } from 'lucide-react';
 
 interface BudgetOverviewProps {
   monthlyBudget: number;
   currentExpenses: number;
   currency?: string;
   className?: string;
+  mode: string;
+  onBudgetChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export function BudgetOverview({
   monthlyBudget,
   currentExpenses,
-  currency = '$',
+  currency,
   className,
+  mode,
+  onBudgetChange,
 }: BudgetOverviewProps) {
   const remainingBudget = monthlyBudget - currentExpenses;
   const budgetPercentage = Math.min((currentExpenses / monthlyBudget) * 100, 100);
@@ -27,9 +33,17 @@ export function BudgetOverview({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <p className="text-muted-foreground text-sm">Monthly Budget</p>
-            <p className="text-foreground text-2xl font-bold">
-              {currency}
-              {monthlyBudget.toLocaleString()}
+            <p className="text-foreground flex items-center gap-2 text-2xl font-bold">
+              <IndianRupee size={16} />
+              {mode === 'view' ? (
+                monthlyBudget.toLocaleString()
+              ) : (
+                <Input
+                  value={monthlyBudget}
+                  onChange={onBudgetChange}
+                  placeholder="Enter monthly budget"
+                />
+              )}
             </p>
           </div>
           <div className="space-y-1">

@@ -17,13 +17,13 @@ export const updateProfile = asyncHandler(async (req: AuthenticatedRequest, res:
     return;
   }
 
-  const { imageUrl } = req.body;
+  const { imageUrl, monthlyBudget } = req.body;
 
   // Validate input
-  if (!imageUrl) {
+  if (!imageUrl && !monthlyBudget) {
     res.status(400).json({
       success: false,
-      message: 'Image Url is required',
+      message: 'No data provided to update',
     });
     return;
   }
@@ -31,7 +31,7 @@ export const updateProfile = asyncHandler(async (req: AuthenticatedRequest, res:
   // Update user profile
   const user = await User.findByIdAndUpdate(
     userId,
-    { profilePicture: imageUrl },
+    imageUrl ? { profilePicture: imageUrl } : { monthlyBudget },
     { new: true, runValidators: true }
   );
 
@@ -53,6 +53,7 @@ export const updateProfile = asyncHandler(async (req: AuthenticatedRequest, res:
         lastName: user.lastName,
         profilePicture: user.profilePicture,
         updatedAt: user.updatedAt,
+        monthlyBudget: user.monthlyBudget,
       },
     },
   });
@@ -93,6 +94,7 @@ export const getUserProfile = asyncHandler(async (req: AuthenticatedRequest, res
         lastName: user.lastName,
         updatedAt: user.updatedAt,
         profilePicture: user.profilePicture,
+        monthlyBudget: user.monthlyBudget,
       },
     },
   });
