@@ -1,4 +1,6 @@
+import { authenticate } from '@/middleware/authMiddleware';
 import express from 'express';
+import { addTransaction } from '../controllers/transaction.controller';
 
 const router = express.Router();
 
@@ -11,5 +13,7 @@ router.get('/', (req, res) => {
     message: 'Transaction routes will be implemented here',
   });
 });
+
+router.post('/',  authenticate, addTransaction);
 
 export default router;

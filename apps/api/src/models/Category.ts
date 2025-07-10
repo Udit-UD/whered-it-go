@@ -4,10 +4,10 @@ export interface ICategory extends Document {
   _id: string;
   name: string;
   icon: string;
-  color: string;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+  isCommon?: boolean; // Indicates if the category is a default category
 }
 
 const categorySchema = new Schema<ICategory>(
@@ -23,16 +23,15 @@ const categorySchema = new Schema<ICategory>(
       required: [true, 'Category icon is required'],
       trim: true,
     },
-    color: {
-      type: String,
-      required: [true, 'Category color is required'],
-      trim: true,
-      match: [/^#[0-9A-F]{6}$/i, 'Please enter a valid hex color code'],
-    },
     userId: {
       type: String,
       required: [true, 'User ID is required'],
       ref: 'User',
+    },
+    isCommon: {
+      type: Boolean,
+      default: false,
+      description: 'Indicates if the category is a default category',
     },
   },
   {

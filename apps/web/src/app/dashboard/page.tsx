@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import _ from 'lodash';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -20,6 +19,8 @@ import { setUser } from '@/store/slices/userSlice';
 import { getFullName } from '@/lib/utils';
 import { MODE_OPTIONS } from './utils';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import withPreloader from '@/hocs/withPreloader';
+import { AppDispatch } from '@/store';
 
 const budgetData = {
   currentExpenses: 18500,
@@ -116,22 +117,26 @@ const quickStats = {
 
 interface UserProfileApiResponse {
   data: {
-    user: {
-      name: string;
-      email: string;
-      profileImage: string;
-      firstName: string;
-      lastName: string;
-      id: string;
+    data: {
+      user: {
+        name: string;
+        email: string;
+        profileImage: string;
+        firstName: string;
+        lastName: string;
+        monthlyBudget: number;
+        id: string;
+      };
     };
   };
 }
 
-export default function DashboardPage() {
-  const [mode, setMode] = useState(MODE_OPTIONS.VIEW);
-
+function DashboardPage() {
   const userData = useAppSelector(state => state.user);
-  const [budget, setBudget] = useState(userData.monthlyBudget || 0);
+  const [mode, setMode] = useState(MODE_OPTIONS.VIEW);
+  const [budget, setBudget] = useState(userData?.monthlyBudget || 0);
+  const [isExpenseLogOpen, setIsExpenseLogOpen] = useState(false);
+
   const dispatch = useAppDispatch();
 
   const getCurrentMonthAndYear = () => {
@@ -170,24 +175,6 @@ export default function DashboardPage() {
     }
   };
 
-  const getUserProfile = async () => {
-    try {
-      const response = await apiService.get<UserProfileApiResponse>('/users/');
-      if (response.data) {
-        const userData = _.get(response.data.data, 'user', {});
-        console.log({ userData });
-        dispatch(setUser(userData));
-      }
-    } catch (error) {
-      console.error('Error fetching user info:', error);
-      return null;
-    }
-  };
-
-  useEffect(() => {
-    getUserProfile();
-  }, []);
-
   // STATE UPDATE FUNCTIONS
   const toggleEditBudget = () => {
     setMode(mode === MODE_OPTIONS.VIEW ? MODE_OPTIONS.UPDATE : MODE_OPTIONS.VIEW);
@@ -195,7 +182,7 @@ export default function DashboardPage() {
 
   const onCancel = () => {
     setMode(MODE_OPTIONS.VIEW);
-    setBudget(userData.monthlyBudget || 0);
+    setBudget(userData?.monthlyBudget || 0);
   };
 
   const onBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,9 +221,11 @@ export default function DashboardPage() {
               <Button variant="outline" size="sm" onClick={toggleEditBudget}>
                 Edit Budget
               </Button>
-              <Dialog>
-                <DialogTrigger size="sm">Add Expense</DialogTrigger>
-                <ExpenseLogModal />
+              <Dialog open={isExpenseLogOpen} onOpenChange={setIsExpenseLogOpen}>
+                <DialogTrigger asChild>
+                  <button className="btn-sm">Add Expense</button>
+                </DialogTrigger>
+                {isExpenseLogOpen && <ExpenseLogModal onClose={() => setIsExpenseLogOpen(false)} />}
               </Dialog>
             </>
           ) : (
@@ -254,14 +243,16 @@ export default function DashboardPage() {
 
       {/* Top Row - User Profile and Budget Overview */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <UserProfile
-          name={getFullName(userData.firstName, userData.lastName)}
-          email={userData.email}
-          profileImage={userData.profilePicture}
-          className="lg:col-span-1"
-          allowUpload={true}
-          onProfileImageUpload={onImageUpload}
-        />
+        {userData ? (
+          <UserProfile
+            name={getFullName(userData.firstName, userData.lastName)}
+            email={userData.email}
+            profileImage={userData.profilePicture || ''}
+            className="lg:col-span-1"
+            allowUpload={true}
+            onProfileImageUpload={onImageUpload}
+          />
+        ) : null}
         <BudgetOverview
           monthlyBudget={budget}
           currentExpenses={budgetData.currentExpenses}
@@ -312,3 +303,19 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+const config = {
+  apiCalls: [
+    {
+      key: 'userProfile',
+      fn: () => apiService.get<UserProfileApiResponse>('/users/'),
+    },
+  ],
+  onSuccess: (data: Record<string, unknown>, dispatch: AppDispatch) => {
+    const userData = data.userProfile as UserProfileApiResponse;
+    const userDetails = userData.data?.data.user;
+    dispatch(setUser(userDetails));
+  },
+};
+
+export default withPreloader(DashboardPage, config);

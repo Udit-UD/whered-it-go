@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import _ from 'lodash';
+import { toast } from 'sonner';
+import apiService from '@/lib/apiService';
 import {
   DialogContent,
   DialogDescription,
@@ -14,7 +16,7 @@ import { Input } from '../ui/input';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '@/lib/utils';
 import { ICONS } from '@/constants/Icons';
-import { PlusIcon } from 'lucide-react';
+import { Check, Loader, PlusIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,11 +24,28 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import DatePickerInput from '../dashboard/DatePicker';
+import withPreloader from '@/hocs/withPreloader';
 
 interface Category {
-  id: string;
+  _id: string;
   name: string;
   icon: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface CategoriesResponse {
+  data: {
+    success: boolean;
+    data: Category[];
+    message: string;
+  };
+}
+
+interface CategoryResponse {
+  success: boolean;
+  data: Category;
+  message: string;
 }
 
 interface ExpenseLogModalProps {
@@ -34,27 +53,28 @@ interface ExpenseLogModalProps {
   onSubmit?: (expense: { title: string; amount: number; categoryId: string }) => void;
 }
 
-const defaultCategories: Category[] = [
-  { id: '1', name: 'Food', icon: '🍽️' },
-  { id: '2', name: 'Transportation', icon: '🚗' },
-  { id: '3', name: 'Shopping', icon: '🛍️' },
-  { id: '4', name: 'Entertainment', icon: '🎬' },
-  { id: '5', name: 'Bills', icon: '📄' },
-  { id: '6', name: 'Health', icon: '🏥' },
-  { id: '7', name: 'Education', icon: '📚' },
-  { id: '8', name: 'Other', icon: '📝' },
-];
-
 const inititalExpenseDetails = {
   title: '',
   amount: '',
-  category: { id: 'NEW_CATEGORY', name: '', icon: '🍽️' },
+  category: { _id: 'NEW_CATEGORY', name: '', icon: '🍽️' },
   date: new Date(),
 };
 
-const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) => {
+const EMPTY_ARRAY: [] = [];
+
+const ExpenseLogModal: React.FC<
+  ExpenseLogModalProps & { preloadedData?: Record<string, unknown> }
+> = ({ onClose, onSubmit, preloadedData }) => {
   const [expenseDetails, setExpenseDetails] = useState(inititalExpenseDetails);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  const categoriesResponse = preloadedData?.categories as CategoriesResponse;
+  const userCategoriesList = categoriesResponse?.data?.data || EMPTY_ARRAY;
+
+  const [categories, setCategories] = useState<Category[]>(
+    userCategoriesList.length > 0 ? userCategoriesList : []
+  );
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   const [errors, setErrors] = useState<{
     title?: string;
@@ -63,8 +83,43 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
     newCategoryName?: string;
     newCategoryIcon?: string;
   }>({});
+  const selectedCategoryId = _.get(expenseDetails, 'category._id', '');
 
-  const selectedCategoryId = _.get(expenseDetails, 'category.id', '');
+  const saveNewCategory = async () => {
+    if (!expenseDetails.category.name.trim() || !expenseDetails.category.icon) {
+      return false;
+    }
+
+    setIsSavingCategory(true);
+    try {
+      const response = await apiService.post<CategoryResponse>('/categories', {
+        name: expenseDetails.category.name.trim(),
+        icon: expenseDetails.category.icon,
+      });
+
+      if (response.data.success) {
+        const newCategory = {
+          _id: response.data.data._id,
+          name: response.data.data.name,
+          icon: response.data.data.icon,
+        };
+
+        setCategories(prev => [...prev, newCategory]);
+
+        setExpenseDetails(prev => ({
+          ...prev,
+          category: newCategory,
+        }));
+
+        setIsAddingCategory(false);
+        toast.success('Category added successfully!');
+      }
+    } catch (error) {
+      toast.error(_.get(error, 'message', 'Failed to save category'));
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
 
   const onUpdateInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.name;
@@ -106,7 +161,7 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
   };
 
   const onCategorySelect = (id: string) => {
-    const selectedCategory = _.find(defaultCategories, { id });
+    const selectedCategory = _.find(categories, { _id: id });
     if (selectedCategory) {
       setExpenseDetails(prev => ({
         ...prev,
@@ -161,6 +216,13 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
         newErrors.category = 'Category name is required';
       } else if (expenseDetails.category.name.trim().length < 2) {
         newErrors.category = 'Category name must be at least 2 characters long';
+      } else {
+        const duplicateCategory = categories.find(
+          cat => cat.name.toLowerCase() === expenseDetails.category.name.trim().toLowerCase()
+        );
+        if (duplicateCategory) {
+          newErrors.category = 'Category with this name already exists';
+        }
       }
 
       if (!expenseDetails.category.icon) {
@@ -174,31 +236,31 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      let categoryId = selectedCategoryId;
-
-      // If creating a new category, generate an ID for it
-      if (selectedCategoryId === 'NEW_CATEGORY') {
-        categoryId = Date.now().toString();
-      }
-
-      onSubmit?.({
-        title: expenseDetails.title.trim(),
-        amount: Number(expenseDetails.amount),
-        categoryId: categoryId,
-      });
-
-      // Reset form
-      setExpenseDetails(inititalExpenseDetails);
-      setIsAddingCategory(false);
-      setErrors({});
-      onClose?.();
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
     }
+
+    if (isAddingCategory) {
+      toast.error('Please save the new category before logging the expense.');
+      return;
+    }
+
+    const categoryId = selectedCategoryId;
+
+    onSubmit?.({
+      title: expenseDetails.title.trim(),
+      amount: Number(expenseDetails.amount),
+      categoryId: categoryId,
+    });
+
+    setExpenseDetails(inititalExpenseDetails);
+    setIsAddingCategory(false);
+    setErrors({});
+    onClose?.();
   };
 
   const handleCancel = () => {
-    // Reset form and close
     setExpenseDetails(inititalExpenseDetails);
     setIsAddingCategory(false);
     setErrors({});
@@ -287,10 +349,10 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
                   <Button
                     variant="outline"
                     size="sm"
-                    className={cn(
-                      'h-8 w-12 p-0 text-lg',
-                      errors.newCategoryIcon && 'border-red-300'
-                    )}
+                    // className={cn(
+                    //   'h-8 w-12 p-0 text-lg',
+                    //   errors.newCategoryIcon && 'border-red-300'
+                    // )}
                   >
                     {_.get(expenseDetails, 'category.icon', '🍽️')}
                   </Button>
@@ -324,6 +386,13 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
                 onChange={onUpdateInput}
                 className={cn('flex-1', errors.category && 'border-red-300')}
               />
+              <Button variant="outline" onClick={saveNewCategory} disabled={isSavingCategory}>
+                {isSavingCategory ? (
+                  <Loader className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+              </Button>
             </div>
             {errors.category && (
               <p className="mt-1 text-xs font-medium text-red-300">{errors.category}</p>
@@ -341,16 +410,16 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
           </label>
 
           <div className="grid grid-cols-4 gap-2">
-            {defaultCategories.map(category => (
+            {categories.map(category => (
               <Card
-                key={category.id}
+                key={category._id}
                 className={cn(
                   'cursor-pointer transition-all duration-200 hover:scale-105',
-                  selectedCategoryId === category.id
+                  selectedCategoryId === category._id
                     ? 'ring-primary bg-primary/10 ring-2'
                     : 'hover:bg-secondary'
                 )}
-                onClick={() => onCategorySelect(category.id)}
+                onClick={() => onCategorySelect(category._id)}
               >
                 <CardContent className="p-3 text-center">
                   <div className="mb-1 text-lg">{category.icon}</div>
@@ -371,7 +440,7 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
                 setIsAddingCategory(true);
                 setExpenseDetails(prev => ({
                   ...prev,
-                  category: { id: 'NEW_CATEGORY', name: '', icon: '🍽️' },
+                  category: { _id: 'NEW_CATEGORY', name: '', icon: '🍽️' },
                 }));
               }}
             >
@@ -388,10 +457,21 @@ const ExpenseLogModal: React.FC<ExpenseLogModalProps> = ({ onClose, onSubmit }) 
         <Button variant="outline" onClick={handleCancel}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit}>Log Expense</Button>
+        <Button onClick={handleSubmit} disabled={isSavingCategory}>
+          {isSavingCategory ? 'Saving Category...' : 'Log Expense'}
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
 };
 
-export default ExpenseLogModal;
+const config = {
+  apiCalls: [
+    {
+      key: 'categories',
+      fn: () => apiService.get<CategoriesResponse>('/categories/'),
+    },
+  ],
+};
+
+export default withPreloader(ExpenseLogModal, config);
