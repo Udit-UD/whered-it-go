@@ -13,26 +13,21 @@ export interface ApiError {
 
 // Financial types
 export interface Transaction {
-  id: string;
+  _id: string;
   amount: number;
   description: string;
-  categoryId: string;
   category: Category;
   date: string;
   userId: string;
-  createdAt: string;
-  updatedAt: string;
-  transactionType?: 'income' | 'expense' | 'transfer'; // Optional for backward compatibility
+  transactionType: 'expense' | 'income';
 }
 
 export interface Category {
-  id: string;
+  _id: string;
   name: string;
-  color: string;
   icon: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Budget {

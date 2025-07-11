@@ -8,7 +8,6 @@ import {
   BudgetOverview,
   StreakCounter,
   ExpenseCategories,
-  RecentTransactions,
   QuickStats,
 } from '@/components/dashboard';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,8 @@ import { MODE_OPTIONS } from './utils';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import withPreloader from '@/hocs/withPreloader';
 import { AppDispatch } from '@/store';
+import { ApiResponse, Transaction } from '@/types';
+import RecentTransactions from '@/components/dashboard/RecentTransactions';
 
 const budgetData = {
   currentExpenses: 18500,
@@ -65,48 +66,48 @@ const expenseCategories = [
   },
 ];
 
-const recentTransactions = [
-  {
-    id: '1',
-    description: 'Grocery Shopping',
-    amount: 1250,
-    category: 'Food',
-    date: '2025-07-05',
-    type: 'expense' as const,
-  },
-  {
-    id: '2',
-    description: 'Uber Ride',
-    amount: 180,
-    category: 'Transportation',
-    date: '2025-07-05',
-    type: 'expense' as const,
-  },
-  {
-    id: '3',
-    description: 'Netflix Subscription',
-    amount: 649,
-    category: 'Entertainment',
-    date: '2025-07-04',
-    type: 'expense' as const,
-  },
-  {
-    id: '4',
-    description: 'Coffee Shop',
-    amount: 150,
-    category: 'Food',
-    date: '2025-07-04',
-    type: 'expense' as const,
-  },
-  {
-    id: '5',
-    description: 'Freelance Payment',
-    amount: 15000,
-    category: 'Income',
-    date: '2025-07-03',
-    type: 'income' as const,
-  },
-];
+// const recentTransactions = [
+//   {
+//     id: '1',
+//     description: 'Grocery Shopping',
+//     amount: 1250,
+//     category: 'Food',
+//     date: '2025-07-05',
+//     type: 'expense' as const,
+//   },
+//   {
+//     id: '2',
+//     description: 'Uber Ride',
+//     amount: 180,
+//     category: 'Transportation',
+//     date: '2025-07-05',
+//     type: 'expense' as const,
+//   },
+//   {
+//     id: '3',
+//     description: 'Netflix Subscription',
+//     amount: 649,
+//     category: 'Entertainment',
+//     date: '2025-07-04',
+//     type: 'expense' as const,
+//   },
+//   {
+//     id: '4',
+//     description: 'Coffee Shop',
+//     amount: 150,
+//     category: 'Food',
+//     date: '2025-07-04',
+//     type: 'expense' as const,
+//   },
+//   {
+//     id: '5',
+//     description: 'Freelance Payment',
+//     amount: 15000,
+//     category: 'Income',
+//     date: '2025-07-03',
+//     type: 'income' as const,
+//   },
+// ];
 
 const quickStats = {
   totalTransactions: 47,
@@ -115,21 +116,18 @@ const quickStats = {
   monthlyChange: 12.5,
 };
 
-interface UserProfileApiResponse {
-  data: {
-    data: {
-      user: {
-        name: string;
-        email: string;
-        profileImage: string;
-        firstName: string;
-        lastName: string;
-        monthlyBudget: number;
-        id: string;
-      };
-    };
-  };
+interface User {
+  name: string;
+  email: string;
+  profileImage: string;
+  firstName: string;
+  lastName: string;
+  monthlyBudget: number;
+  id: string;
 }
+
+// Define a clearer typing using type alias
+type UserProfileApiResponse = ApiResponse<User>;
 
 function DashboardPage() {
   const userData = useAppSelector(state => state.user);
@@ -284,7 +282,7 @@ function DashboardPage() {
           totalExpenses={budgetData.currentExpenses}
           currency={budgetData.currency}
         />
-        <RecentTransactions transactions={recentTransactions} currency={budgetData.currency} />
+        <RecentTransactions currency={budgetData.currency} />
       </div>
 
       {/* Call to Action Section */}
@@ -310,10 +308,17 @@ const config = {
       key: 'userProfile',
       fn: () => apiService.get<UserProfileApiResponse>('/users/'),
     },
+    {
+      key: 'recentTransactions',
+      fn: () =>
+        apiService.get<ApiResponse<Transaction[]>>(
+          '/transactions/recent-transactions?limit=5&page=1'
+        ),
+    },
   ],
   onSuccess: (data: Record<string, unknown>, dispatch: AppDispatch) => {
     const userData = data.userProfile as UserProfileApiResponse;
-    const userDetails = userData.data?.data.user;
+    const userDetails = userData.data;
     dispatch(setUser(userDetails));
   },
 };

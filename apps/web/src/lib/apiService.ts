@@ -99,6 +99,26 @@ class ApiService {
   }
 
   private formatResponse<T>(response: AxiosResponse<T>): ApiResponse<T> {
+    const isApiResponse =
+      response.data && typeof response.data === 'object' && 'success' in response.data;
+
+    if (isApiResponse) {
+      interface BackendResponse {
+        success: boolean;
+        data: unknown;
+        message?: string;
+      }
+
+      const backendResponse = response.data as BackendResponse;
+      return {
+        data: backendResponse.data as T,
+        status: response.status,
+        statusText: response.statusText,
+        success: backendResponse.success,
+        message: backendResponse.message || response.statusText,
+      };
+    }
+
     return {
       data: response.data,
       status: response.status,

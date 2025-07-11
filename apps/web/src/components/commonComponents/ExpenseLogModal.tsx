@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import _ from 'lodash';
 import { toast } from 'sonner';
 import apiService from '@/lib/apiService';
@@ -25,32 +25,23 @@ import {
 } from '../ui/dropdown-menu';
 import DatePickerInput from '../dashboard/DatePicker';
 import withPreloader from '@/hocs/withPreloader';
+import { ApiResponse, Transaction, Category } from '@/types';
 
-interface Category {
-  _id: string;
-  name: string;
-  icon: string;
-  createdAt?: string;
-  updatedAt?: string;
+interface ExpenseError {
+  title?: string;
+  amount?: string;
+  category?: string;
+  newCategoryName?: string;
+  newCategoryIcon?: string;
 }
 
-interface CategoriesResponse {
-  data: {
-    success: boolean;
-    data: Category[];
-    message: string;
-  };
-}
-
-interface CategoryResponse {
-  success: boolean;
-  data: Category;
-  message: string;
-}
+type CategoriesResponse = ApiResponse<Category[]>;
+type CategoryResponse = ApiResponse<Category>;
+type TransactionResponse = ApiResponse<Transaction>;
 
 interface ExpenseLogModalProps {
-  onClose?: () => void;
-  onSubmit?: (expense: { title: string; amount: number; categoryId: string }) => void;
+  onClose: () => void;
+  isLoading?: boolean;
 }
 
 const inititalExpenseDetails = {
@@ -64,74 +55,37 @@ const EMPTY_ARRAY: [] = [];
 
 const ExpenseLogModal: React.FC<
   ExpenseLogModalProps & { preloadedData?: Record<string, unknown> }
-> = ({ onClose, onSubmit, preloadedData }) => {
+> = ({ onClose, preloadedData, isLoading }) => {
+  // API Data
+  const categoriesResponse = preloadedData?.categories as CategoriesResponse;
+  const userCategoriesList = categoriesResponse?.data || EMPTY_ARRAY;
+
+  // Local State
+  const [categories, setCategories] = useState<Category[]>(userCategoriesList);
   const [expenseDetails, setExpenseDetails] = useState(inititalExpenseDetails);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isLocalStateLoading, setIsLocalStateLoading] = useState(false);
+  const [errors, setErrors] = useState<ExpenseError>({});
 
-  const categoriesResponse = preloadedData?.categories as CategoriesResponse;
-  const userCategoriesList = categoriesResponse?.data?.data || EMPTY_ARRAY;
-
-  const [categories, setCategories] = useState<Category[]>(
-    userCategoriesList.length > 0 ? userCategoriesList : []
-  );
-  const [isSavingCategory, setIsSavingCategory] = useState(false);
-
-  const [errors, setErrors] = useState<{
-    title?: string;
-    amount?: string;
-    category?: string;
-    newCategoryName?: string;
-    newCategoryIcon?: string;
-  }>({});
   const selectedCategoryId = _.get(expenseDetails, 'category._id', '');
 
-  const saveNewCategory = async () => {
-    if (!expenseDetails.category.name.trim() || !expenseDetails.category.icon) {
-      return false;
+  useEffect(() => {
+    if (!isLoading && userCategoriesList?.length > 0) {
+      setCategories(userCategoriesList);
     }
+  }, [userCategoriesList, isLoading]);
 
-    setIsSavingCategory(true);
-    try {
-      const response = await apiService.post<CategoryResponse>('/categories', {
-        name: expenseDetails.category.name.trim(),
-        icon: expenseDetails.category.icon,
-      });
-
-      if (response.data.success) {
-        const newCategory = {
-          _id: response.data.data._id,
-          name: response.data.data.name,
-          icon: response.data.data.icon,
-        };
-
-        setCategories(prev => [...prev, newCategory]);
-
-        setExpenseDetails(prev => ({
-          ...prev,
-          category: newCategory,
-        }));
-
-        setIsAddingCategory(false);
-        toast.success('Category added successfully!');
-      }
-    } catch (error) {
-      toast.error(_.get(error, 'message', 'Failed to save category'));
-    } finally {
-      setIsSavingCategory(false);
-    }
+  const onAddNewClick = () => {
+    setIsAddingCategory(true);
+    setExpenseDetails(prev => ({
+      ...prev,
+      category: { _id: 'NEW_CATEGORY', name: '', icon: '🍽️' },
+    }));
   };
 
   const onUpdateInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.name;
     const value = e.target.value;
-
-    // Clear errors when user starts typing
-    if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined,
-      }));
-    }
 
     if (name === 'category') {
       setExpenseDetails(prev => ({
@@ -236,7 +190,40 @@ const ExpenseLogModal: React.FC<
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const saveNewCategory = async () => {
+    if (!expenseDetails.category.name.trim() || !expenseDetails.category.icon) return false;
+
+    setIsLocalStateLoading(true);
+    try {
+      const response = await apiService.post<CategoryResponse>('/categories', {
+        name: expenseDetails.category.name.trim(),
+        icon: expenseDetails.category.icon,
+      });
+
+      if (response.success) {
+        const categoryData = response.data as unknown as Category;
+        const newCategory = {
+          _id: categoryData._id,
+          name: categoryData.name,
+          icon: categoryData.icon,
+        };
+        setCategories(prev => [...prev, newCategory]);
+        setExpenseDetails(prev => ({
+          ...prev,
+          category: newCategory,
+        }));
+
+        setIsAddingCategory(false);
+        toast.success('Category added successfully!');
+      }
+    } catch (error) {
+      toast.error(_.get(error, 'message', 'Failed to save category'));
+    } finally {
+      setIsLocalStateLoading(false);
+    }
+  };
+
+  const onSaveExpense = async () => {
     if (!validateForm()) {
       return;
     }
@@ -246,25 +233,38 @@ const ExpenseLogModal: React.FC<
       return;
     }
 
-    const categoryId = selectedCategoryId;
+    setIsLocalStateLoading(true);
+    try {
+      const payload = {
+        description: expenseDetails.title.trim(),
+        amount: Number(expenseDetails.amount),
+        categoryId: selectedCategoryId,
+        date: expenseDetails.date.toISOString(),
+        transactionType: 'expense',
+      };
 
-    onSubmit?.({
-      title: expenseDetails.title.trim(),
-      amount: Number(expenseDetails.amount),
-      categoryId: categoryId,
-    });
+      const response = await apiService.post<TransactionResponse>('/transactions/', payload);
 
-    setExpenseDetails(inititalExpenseDetails);
-    setIsAddingCategory(false);
-    setErrors({});
-    onClose?.();
+      if (response.success) {
+        toast.success('Expense logged successfully!');
+      } else {
+        toast.error(response.data.message || 'Failed to log expense');
+        return;
+      }
+      setExpenseDetails(inititalExpenseDetails);
+      onClose();
+    } catch (error) {
+      toast.error(_.get(error, 'message', 'Failed to log expense'));
+    } finally {
+      setIsLocalStateLoading(false);
+    }
   };
 
-  const handleCancel = () => {
+  const onCancel = () => {
     setExpenseDetails(inititalExpenseDetails);
     setIsAddingCategory(false);
     setErrors({});
-    onClose?.();
+    onClose();
   };
 
   return (
@@ -386,8 +386,8 @@ const ExpenseLogModal: React.FC<
                 onChange={onUpdateInput}
                 className={cn('flex-1', errors.category && 'border-red-300')}
               />
-              <Button variant="outline" onClick={saveNewCategory} disabled={isSavingCategory}>
-                {isSavingCategory ? (
+              <Button variant="outline" onClick={saveNewCategory} disabled={isLocalStateLoading}>
+                {isLocalStateLoading ? (
                   <Loader className="h-4 w-4 animate-spin" />
                 ) : (
                   <Check className="h-4 w-4" />
@@ -409,56 +409,56 @@ const ExpenseLogModal: React.FC<
             Category <span className="text-red-300">*</span>
           </label>
 
-          <div className="grid grid-cols-4 gap-2">
-            {categories.map(category => (
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <Loader className="text-muted-foreground h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {categories.map(category => (
+                <Card
+                  key={category._id}
+                  className={cn(
+                    'cursor-pointer transition-all duration-200 hover:scale-105',
+                    selectedCategoryId === category._id
+                      ? 'ring-primary bg-primary/10 ring-2'
+                      : 'hover:bg-secondary'
+                  )}
+                  onClick={() => onCategorySelect(category._id)}
+                >
+                  <CardContent className="p-3 text-center">
+                    <div className="mb-1 text-lg">{category.icon}</div>
+                    <div className="truncate text-xs font-medium">{category.name}</div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Add New Category Button */}
               <Card
-                key={category._id}
                 className={cn(
-                  'cursor-pointer transition-all duration-200 hover:scale-105',
-                  selectedCategoryId === category._id
-                    ? 'ring-primary bg-primary/10 ring-2'
-                    : 'hover:bg-secondary'
+                  'hover:bg-secondary cursor-pointer border-dashed transition-all duration-200 hover:scale-105',
+                  selectedCategoryId === 'NEW_CATEGORY' &&
+                    isAddingCategory &&
+                    'ring-primary bg-primary/10 ring-2'
                 )}
-                onClick={() => onCategorySelect(category._id)}
+                onClick={onAddNewClick}
               >
                 <CardContent className="p-3 text-center">
-                  <div className="mb-1 text-lg">{category.icon}</div>
-                  <div className="truncate text-xs font-medium">{category.name}</div>
+                  <PlusIcon className="text-muted-foreground mx-auto mb-1 h-5 w-5" />
+                  <div className="text-muted-foreground text-xs font-medium">Add New</div>
                 </CardContent>
               </Card>
-            ))}
-
-            {/* Add New Category Button */}
-            <Card
-              className={cn(
-                'hover:bg-secondary cursor-pointer border-dashed transition-all duration-200 hover:scale-105',
-                selectedCategoryId === 'NEW_CATEGORY' &&
-                  isAddingCategory &&
-                  'ring-primary bg-primary/10 ring-2'
-              )}
-              onClick={() => {
-                setIsAddingCategory(true);
-                setExpenseDetails(prev => ({
-                  ...prev,
-                  category: { _id: 'NEW_CATEGORY', name: '', icon: '🍽️' },
-                }));
-              }}
-            >
-              <CardContent className="p-3 text-center">
-                <PlusIcon className="text-muted-foreground mx-auto mb-1 h-5 w-5" />
-                <div className="text-muted-foreground text-xs font-medium">Add New</div>
-              </CardContent>
-            </Card>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
       <DialogFooter>
-        <Button variant="outline" onClick={handleCancel}>
+        <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={isSavingCategory}>
-          {isSavingCategory ? 'Saving Category...' : 'Log Expense'}
+        <Button onClick={onSaveExpense} disabled={isLocalStateLoading}>
+          {isLocalStateLoading ? 'Saving Category...' : 'Log Expense'}
         </Button>
       </DialogFooter>
     </DialogContent>

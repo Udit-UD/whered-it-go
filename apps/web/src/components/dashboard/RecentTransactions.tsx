@@ -1,26 +1,35 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import withPreloader from '@/hocs/withPreloader';
+import apiService from '@/lib/apiService';
 import { cn } from '@/lib/utils';
-
-interface RecentTransaction {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-  type: 'expense' | 'income';
-}
-
+import { ApiResponse, Transaction } from '@/types';
+import _ from 'lodash';
+import { useEffect, useState } from 'react';
 interface RecentTransactionsProps {
-  transactions: RecentTransaction[];
   currency?: string;
   className?: string;
+  preloadedData?: Record<string, unknown>;
+  isLoading?: boolean;
 }
 
-export function RecentTransactions({
-  transactions,
+type TransactionsResponse = ApiResponse<Transaction[]>;
+
+function RecentTransactions({
   currency = '$',
   className,
+  preloadedData,
+  isLoading,
 }: RecentTransactionsProps) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      const transactionResponse = preloadedData?.recentTransactions as TransactionsResponse;
+      const trasactionData = transactionResponse?.data || [];
+      setTransactions(trasactionData);
+    }
+  }, [isLoading, preloadedData]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -39,21 +48,6 @@ export function RecentTransactions({
     }
   };
 
-  const getCategoryIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      Food: '🍽️',
-      Transportation: '🚗',
-      Shopping: '🛍️',
-      Entertainment: '🎬',
-      Bills: '📄',
-      Health: '🏥',
-      Education: '📚',
-      Income: '💰',
-      Other: '📝',
-    };
-    return icons[category] || icons['Other'];
-  };
-
   return (
     <Card className={cn('', className)}>
       <CardHeader className="pb-3">
@@ -64,17 +58,19 @@ export function RecentTransactions({
           {transactions.length > 0 ? (
             transactions.map(transaction => (
               <div
-                key={transaction.id}
+                key={transaction._id}
                 className="bg-secondary/50 hover:bg-secondary flex items-center justify-between rounded-lg p-3 transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="text-lg">{getCategoryIcon(transaction.category)}</div>
+                  <div className="text-lg">{_.get(transaction, 'category.icon', '')}</div>
                   <div className="min-w-0 flex-1">
                     <p className="text-foreground truncate text-sm font-medium">
                       {transaction.description}
                     </p>
                     <div className="mt-1 flex items-center space-x-2">
-                      <span className="text-muted-foreground text-xs">{transaction.category}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {transaction.category.name}
+                      </span>
                       <span className="text-muted-foreground text-xs">•</span>
                       <span className="text-muted-foreground text-xs">
                         {formatDate(transaction.date)}
@@ -86,10 +82,12 @@ export function RecentTransactions({
                   <p
                     className={cn(
                       'text-sm font-semibold',
-                      transaction.type === 'expense' ? 'text-destructive' : 'text-green-500'
+                      transaction.transactionType === 'expense'
+                        ? 'text-destructive'
+                        : 'text-green-500'
                     )}
                   >
-                    {transaction.type === 'expense' ? '-' : '+'}
+                    {transaction.transactionType === 'expense' ? '-' : '+'}
                     {currency}
                     {transaction.amount.toLocaleString()}
                   </p>
@@ -109,3 +107,17 @@ export function RecentTransactions({
     </Card>
   );
 }
+
+const config = {
+  apiCalls: [
+    {
+      key: 'recentTransactions',
+      fn: () =>
+        apiService.get<ApiResponse<Transaction[]>>(
+          '/transactions/recent-transactions?limit=5&page=1'
+        ),
+    },
+  ],
+};
+
+export default withPreloader(RecentTransactions, config);

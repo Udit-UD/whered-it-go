@@ -87,15 +87,13 @@ export const getUserProfile = asyncHandler(async (req: AuthenticatedRequest, res
   res.json({
     success: true,
     data: {
-      user: {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        updatedAt: user.updatedAt,
-        profilePicture: user.profilePicture,
-        monthlyBudget: user.monthlyBudget,
-      },
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      updatedAt: user.updatedAt,
+      profilePicture: user.profilePicture,
+      monthlyBudget: user.monthlyBudget,
     },
   });
 });
