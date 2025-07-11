@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import _ from 'lodash';
 import { toast } from 'sonner';
 import apiService from '@/lib/apiService';
+import EmojiPicker from 'emoji-picker-react';
 import {
   DialogContent,
   DialogDescription,
@@ -15,14 +16,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '@/lib/utils';
-import { ICONS } from '@/constants/Icons';
 import { Check, Loader, PlusIcon } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
 import DatePickerInput from '../dashboard/DatePicker';
 import withPreloader from '@/hocs/withPreloader';
 import { ApiResponse, Transaction, Category } from '@/types';
@@ -66,6 +60,7 @@ const ExpenseLogModal: React.FC<
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isLocalStateLoading, setIsLocalStateLoading] = useState(false);
   const [errors, setErrors] = useState<ExpenseError>({});
+  const [isIconPickerOpen, setIconPickerOpen] = useState(false);
 
   const selectedCategoryId = _.get(expenseDetails, 'category._id', '');
 
@@ -74,6 +69,10 @@ const ExpenseLogModal: React.FC<
       setCategories(userCategoriesList);
     }
   }, [userCategoriesList, isLoading]);
+
+  const toggleIconPicker = () => {
+    setIconPickerOpen(prev => !prev);
+  };
 
   const onAddNewClick = () => {
     setIsAddingCategory(true);
@@ -104,12 +103,12 @@ const ExpenseLogModal: React.FC<
     }));
   };
 
-  const onChooseIcon = (icon: string) => {
+  const onChooseIcon = (params: { emoji: string }) => {
     setExpenseDetails(prev => ({
       ...prev,
       category: {
         ...prev.category,
-        icon,
+        icon: params.emoji,
       },
     }));
   };
@@ -344,39 +343,24 @@ const ExpenseLogModal: React.FC<
               </Button>
             </div>
             <div className="flex items-center gap-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    // className={cn(
-                    //   'h-8 w-12 p-0 text-lg',
-                    //   errors.newCategoryIcon && 'border-red-300'
-                    // )}
-                  >
-                    {_.get(expenseDetails, 'category.icon', '🍽️')}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-40 overflow-y-auto">
-                  <div className="grid grid-cols-4 gap-1 p-2">
-                    {_.map(ICONS, (icon, index) => (
-                      <DropdownMenuItem
-                        key={index}
-                        onClick={() => {
-                          onChooseIcon(icon);
-                          // Clear icon error if one exists
-                          if (errors.newCategoryIcon) {
-                            setErrors(prev => ({ ...prev, newCategoryIcon: undefined }));
-                          }
-                        }}
-                        className="hover:bg-secondary cursor-pointer justify-center p-2 text-lg"
-                      >
-                        {icon}
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div
+                onClick={toggleIconPicker}
+                className="relative flex h-10 w-12 items-center justify-center rounded-lg border p-0 text-lg"
+              >
+                {_.get(expenseDetails, 'category.icon', '🍽️')}
+                <EmojiPicker
+                  open={isIconPickerOpen}
+                  onEmojiClick={onChooseIcon}
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    height: '400px',
+                    width: '300px',
+                  }}
+                />
+              </div>
+
               <Input
                 type="text"
                 placeholder="Enter category name..."
