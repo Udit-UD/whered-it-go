@@ -138,3 +138,5 @@ export const COLORS = {
     700: '#b91c1c',
   },
 } as const;
+
+export const USER_CURRENCY = '₹';

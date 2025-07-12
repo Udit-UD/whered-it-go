@@ -113,3 +113,19 @@ export const generateRandomId = (length: number = 8): string => {
 export const getFullName = (firstName: string, lastName: string): string => {
   return `${firstName} ${lastName}`.trim();
 };
+
+export function getRandomColor() {
+  const colors = [
+    '#f87171', // red-400
+    '#fb923c', // orange-400
+    '#facc15', // yellow-400
+    '#4ade80', // green-400
+    '#60a5fa', // blue-400
+    '#a78bfa', // purple-400
+    '#f472b6', // pink-400
+    '#34d399', // emerald-400
+    '#fcd34d', // amber-400
+    '#c084fc', // violet-400
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}

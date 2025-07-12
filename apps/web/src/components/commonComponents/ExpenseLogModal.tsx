@@ -398,7 +398,7 @@ const ExpenseLogModal: React.FC<
               <Loader className="text-muted-foreground h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {categories.map(category => (
                 <Card
                   key={category._id}
@@ -420,7 +420,7 @@ const ExpenseLogModal: React.FC<
               {/* Add New Category Button */}
               <Card
                 className={cn(
-                  'hover:bg-secondary cursor-pointer border-dashed transition-all duration-200 hover:scale-105',
+                  'hover:bg-secondary mb-2 cursor-pointer border-dashed transition-all duration-200 hover:scale-105',
                   selectedCategoryId === 'NEW_CATEGORY' &&
                     isAddingCategory &&
                     'ring-primary bg-primary/10 ring-2'

@@ -5,7 +5,7 @@ interface QuickStatsProps {
   stats: {
     totalTransactions: number;
     avgDailySpending: number;
-    topCategory: string;
+    topCategory: { name: string; icon: string } | null;
     monthlyChange: number;
   };
   currency?: string;
@@ -15,6 +15,7 @@ interface QuickStatsProps {
 export function QuickStats({ stats, currency = '$', className }: QuickStatsProps) {
   const formatChange = (change: number) => {
     const isPositive = change >= 0;
+
     return {
       value: Math.abs(change),
       isPositive,
@@ -40,9 +41,9 @@ export function QuickStats({ stats, currency = '$', className }: QuickStatsProps
     },
     {
       label: 'Top Category',
-      value: stats.topCategory,
+      value: stats.topCategory?.name || 'N/A',
       suffix: '',
-      icon: '🏆',
+      icon: stats.topCategory?.icon || '❓',
     },
     {
       label: 'vs Last Month',
@@ -74,7 +75,7 @@ export function QuickStats({ stats, currency = '$', className }: QuickStatsProps
                     'text-lg font-bold',
                     item.isChange
                       ? item.isPositive
-                        ? 'text-destructive'
+                        ? 'text-red-500'
                         : 'text-green-500'
                       : 'text-foreground'
                   )}

@@ -84,7 +84,13 @@ export const recentTransactions = asyncHandler(async (req: AuthenticatedRequest,
       .skip((page - 1) * limit)
       .limit(limit);
 
-    if (!transactions.length) throw new Error('No transactions found');
+    if (!transactions.length) {
+      return res.status(200).json({
+        success: false,
+        data: [],
+        message: 'No transactions found',
+      });
+    }
 
     const updatedTransactions = _.map(transactions, transaction => ({
       ...transaction.toObject(),

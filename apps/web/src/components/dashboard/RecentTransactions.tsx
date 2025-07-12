@@ -1,9 +1,9 @@
+import _ from 'lodash';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import withPreloader from '@/hocs/withPreloader';
 import apiService from '@/lib/apiService';
 import { cn } from '@/lib/utils';
 import { ApiResponse, Transaction } from '@/types';
-import _ from 'lodash';
 import { useEffect, useState } from 'react';
 interface RecentTransactionsProps {
   currency?: string;

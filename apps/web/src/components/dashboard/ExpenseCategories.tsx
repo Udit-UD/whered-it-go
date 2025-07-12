@@ -1,11 +1,10 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, getRandomColor } from '@/lib/utils';
 
 interface ExpenseCategory {
-  name: string;
-  amount: number;
-  color: string;
-  percentage: number;
+  categoryName: string;
+  totalAmount: number;
+  budgetPercentage: string;
 }
 
 interface ExpenseCategoriesProps {
@@ -34,24 +33,26 @@ export function ExpenseCategories({
                 <div className="flex items-center space-x-2">
                   <div
                     className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: category.color }}
+                    style={{ backgroundColor: getRandomColor() }}
                   />
-                  <span className="text-foreground text-sm font-medium">{category.name}</span>
+                  <span className="text-foreground text-sm font-medium">
+                    {category.categoryName}
+                  </span>
                 </div>
                 <div className="text-right">
                   <p className="text-foreground text-sm font-semibold">
                     {currency}
-                    {category.amount.toLocaleString()}
+                    {category.totalAmount.toLocaleString()}
                   </p>
-                  <p className="text-muted-foreground text-xs">{category.percentage.toFixed(1)}%</p>
+                  <p className="text-muted-foreground text-xs">{category.budgetPercentage}%</p>
                 </div>
               </div>
               <div className="bg-secondary h-1.5 w-full rounded-full">
                 <div
                   className="h-1.5 rounded-full transition-all duration-300"
                   style={{
-                    backgroundColor: category.color,
-                    width: `${category.percentage}%`,
+                    backgroundColor: getRandomColor(),
+                    width: `${category.budgetPercentage}%`,
                   }}
                 />
               </div>

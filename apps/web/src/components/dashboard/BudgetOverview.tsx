@@ -15,7 +15,7 @@ interface BudgetOverviewProps {
 export function BudgetOverview({
   monthlyBudget,
   currentExpenses,
-  currency,
+  currency = '₹',
   className,
   mode,
   onBudgetChange,

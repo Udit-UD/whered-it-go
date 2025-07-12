@@ -4,9 +4,9 @@ export interface ITransaction extends Document {
   _id: string;
   amount: number;
   description: string;
-  categoryId: string;
+  categoryId: mongoose.Schema.Types.ObjectId;
   date: Date;
-  userId: string;
+  userId: mongoose.Schema.Types.ObjectId;
   transactionType: 'income' | 'expense';
   createdAt: Date;
   updatedAt: Date;
@@ -31,7 +31,7 @@ const transactionSchema = new Schema<ITransaction>(
       maxlength: [200, 'Description cannot be more than 200 characters'],
     },
     categoryId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       required: [true, 'Category ID is required'],
       ref: 'Category',
     },
@@ -41,7 +41,7 @@ const transactionSchema = new Schema<ITransaction>(
       default: Date.now,
     },
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       required: [true, 'User ID is required'],
       ref: 'User',
     },

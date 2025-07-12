@@ -1,7 +1,10 @@
+import Transaction from '../models/Transaction';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { asyncHandler } from '../middleware/errorMiddleware';
 import Category from '../models/Category';
 import { Response } from 'express';
+import User from '../models/User';
+import mongoose from 'mongoose';
 
 // @desc    POST user category
 // @route   POST /api/category/
@@ -55,7 +58,13 @@ export const getCategories = asyncHandler(async (req: AuthenticatedRequest, res:
   const userId = req.user?.id;
 
   try {
-    const categories = await Category.find({ userId }).sort({ createdAt: -1 });
+    const categories = await Category.aggregate([
+      {
+        $match: {
+          $or: [{ userId: new mongoose.Types.ObjectId(userId) }, { isCommon: true }],
+        },
+      },
+    ]);
 
     res.status(200).json({
       success: true,
@@ -66,6 +75,79 @@ export const getCategories = asyncHandler(async (req: AuthenticatedRequest, res:
     res.status(500).json({
       success: false,
       message: 'Something went wrong while fetching categories',
+    });
+  }
+});
+
+export const getCategoryStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+
+  try {
+    const userMonthlyBudget = await User.findById(userId).select('monthlyBudget');
+
+    const categories = await Transaction.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          categoryId: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: '$categoryId',
+          totalAmount: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $addFields: {
+          categoryObjectId: { $toObjectId: '$_id' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categoryObjectId',
+          foreignField: '_id',
+          as: 'categoryDetails',
+        },
+      },
+      {
+        $unwind: '$categoryDetails',
+      },
+      {
+        $project: {
+          _id: 0,
+          categoryId: '$categoryDetails._id',
+          totalAmount: 1,
+          count: 1,
+          categoryName: '$categoryDetails.name',
+          categoryIcon: '$categoryDetails.icon',
+        },
+      },
+    ]);
+
+    const budgetPercentageSpentOnEachCategory = categories.map(category => {
+      const budgetPercentage = userMonthlyBudget?.monthlyBudget
+        ? ((category.totalAmount / userMonthlyBudget.monthlyBudget) * 100).toFixed(2)
+        : 0;
+      return {
+        ...category,
+        budgetPercentage,
+      };
+    });
+
+    console.log('Budget Percentage Spent on Each Category:', budgetPercentageSpentOnEachCategory);
+
+    res.status(200).json({
+      success: true,
+      data: budgetPercentageSpentOnEachCategory,
+      message: 'Category stats fetched successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Something went wrong while fetching category stats',
     });
   }
 });

@@ -4,7 +4,7 @@ export interface ICategory extends Document {
   _id: string;
   name: string;
   icon: string;
-  userId: string;
+  userId: mongoose.Schema.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
   isCommon?: boolean; // Indicates if the category is a default category
@@ -24,7 +24,7 @@ const categorySchema = new Schema<ICategory>(
       trim: true,
     },
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       required: [true, 'User ID is required'],
       ref: 'User',
     },

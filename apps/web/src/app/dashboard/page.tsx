@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import _ from 'lodash';
 import { toast } from 'sonner';
 
 import {
@@ -20,101 +21,25 @@ import { MODE_OPTIONS } from './utils';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import withPreloader from '@/hocs/withPreloader';
 import { AppDispatch } from '@/store';
-import { ApiResponse, Transaction } from '@/types';
+import { ApiResponse } from '@/types';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
-
-const budgetData = {
-  currentExpenses: 18500,
-  currency: '₹',
-};
+import { USER_CURRENCY } from '@/constants';
 
 const streakData = {
   currentStreak: 12,
   longestStreak: 45,
 };
 
-const expenseCategories = [
-  {
-    name: 'Food',
-    amount: 5500,
-    color: '#ef4444',
-    percentage: 29.7,
-  },
-  {
-    name: 'Transportation',
-    amount: 3200,
-    color: '#3b82f6',
-    percentage: 17.3,
-  },
-  {
-    name: 'Shopping',
-    amount: 4100,
-    color: '#f59e0b',
-    percentage: 22.2,
-  },
-  {
-    name: 'Entertainment',
-    amount: 2400,
-    color: '#10b981',
-    percentage: 13.0,
-  },
-  {
-    name: 'Bills',
-    amount: 3300,
-    color: '#8b5cf6',
-    percentage: 17.8,
-  },
-];
-
-// const recentTransactions = [
-//   {
-//     id: '1',
-//     description: 'Grocery Shopping',
-//     amount: 1250,
-//     category: 'Food',
-//     date: '2025-07-05',
-//     type: 'expense' as const,
-//   },
-//   {
-//     id: '2',
-//     description: 'Uber Ride',
-//     amount: 180,
-//     category: 'Transportation',
-//     date: '2025-07-05',
-//     type: 'expense' as const,
-//   },
-//   {
-//     id: '3',
-//     description: 'Netflix Subscription',
-//     amount: 649,
-//     category: 'Entertainment',
-//     date: '2025-07-04',
-//     type: 'expense' as const,
-//   },
-//   {
-//     id: '4',
-//     description: 'Coffee Shop',
-//     amount: 150,
-//     category: 'Food',
-//     date: '2025-07-04',
-//     type: 'expense' as const,
-//   },
-//   {
-//     id: '5',
-//     description: 'Freelance Payment',
-//     amount: 15000,
-//     category: 'Income',
-//     date: '2025-07-03',
-//     type: 'income' as const,
-//   },
-// ];
-
-const quickStats = {
-  totalTransactions: 47,
-  avgDailySpending: 616,
-  topCategory: 'Food',
-  monthlyChange: 12.5,
-};
+interface UserBudgetOverview {
+  monthlyBudget: number;
+  monthlySpent: number;
+  remainingBudget: number;
+  spentPercentage: number;
+  totalTransactions: number;
+  avgDailySpending: number;
+  topCategory: { name: string; icon: string } | null;
+  monthlyChange: number;
+}
 
 interface User {
   name: string;
@@ -126,16 +51,54 @@ interface User {
   id: string;
 }
 
-// Define a clearer typing using type alias
-type UserProfileApiResponse = ApiResponse<User>;
+interface CategoryStats {
+  categoryId: string;
+  totalAmount: number;
+  count: number;
+  categoryName: string;
+  categoryIcon: string;
+  budgetPercentage: string;
+}
 
-function DashboardPage() {
+type UserProfileApiResponse = ApiResponse<User>;
+type UserBudgetOverviewResponse = ApiResponse<UserBudgetOverview>;
+type CategoryStatsApiResponse = ApiResponse<CategoryStats[]>;
+
+function DashboardPage({
+  preloadedData,
+  isLoading,
+}: {
+  isLoading: boolean;
+  preloadedData?: Record<string, unknown>;
+}) {
   const userData = useAppSelector(state => state.user);
   const [mode, setMode] = useState(MODE_OPTIONS.VIEW);
   const [budget, setBudget] = useState(userData?.monthlyBudget || 0);
+  const [budgetOverview, setBudgetOverview] = useState<UserBudgetOverview | {}>({});
   const [isExpenseLogOpen, setIsExpenseLogOpen] = useState(false);
+  const [expenseCategoriesData, setExpenseCategoriesData] = useState<CategoryStats[] | []>([]);
 
+  const quickStats = {
+    totalTransactions: _.get(budgetOverview, 'totalTransactions', 0),
+    avgDailySpending: _.get(budgetOverview, 'avgDailySpending', 0),
+    topCategory: _.get(budgetOverview, 'topCategory', null),
+    monthlyChange: _.get(budgetOverview, 'monthlyChange', 0),
+  };
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!isLoading) {
+      const userBudgetOverviewResponse =
+        preloadedData?.budgetOverview as UserBudgetOverviewResponse;
+      const categoryStatsResponse = preloadedData?.categoryStats as CategoryStatsApiResponse;
+
+      const userBudgetData = userBudgetOverviewResponse?.data;
+      const categoryStatsData = categoryStatsResponse ? categoryStatsResponse.data : [];
+
+      setBudgetOverview(userBudgetData);
+      setExpenseCategoriesData(categoryStatsData);
+    }
+  }, [isLoading, preloadedData]);
 
   const getCurrentMonthAndYear = () => {
     const date = new Date();
@@ -253,8 +216,7 @@ function DashboardPage() {
         ) : null}
         <BudgetOverview
           monthlyBudget={budget}
-          currentExpenses={budgetData.currentExpenses}
-          currency={budgetData.currency}
+          currentExpenses={_.get(budgetOverview, 'monthlySpent', 0)}
           mode={mode}
           onBudgetChange={onBudgetChange}
           className="lg:col-span-2"
@@ -265,7 +227,7 @@ function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <QuickStats
           stats={quickStats}
-          currency={budgetData.currency}
+          currency={USER_CURRENCY}
           className="md:col-span-2 lg:col-span-2"
         />
         <StreakCounter
@@ -278,11 +240,11 @@ function DashboardPage() {
       {/* Third Row - Categories and Recent Transactions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ExpenseCategories
-          categories={expenseCategories}
-          totalExpenses={budgetData.currentExpenses}
-          currency={budgetData.currency}
+          categories={expenseCategoriesData}
+          totalExpenses={_.get(budgetOverview, 'monthlySpent', 0)}
+          currency={USER_CURRENCY}
         />
-        <RecentTransactions currency={budgetData.currency} />
+        <RecentTransactions currency={USER_CURRENCY} />
       </div>
 
       {/* Call to Action Section */}
@@ -309,11 +271,12 @@ const config = {
       fn: () => apiService.get<UserProfileApiResponse>('/users/'),
     },
     {
-      key: 'recentTransactions',
-      fn: () =>
-        apiService.get<ApiResponse<Transaction[]>>(
-          '/transactions/recent-transactions?limit=5&page=1'
-        ),
+      key: 'budgetOverview',
+      fn: () => apiService.get<ApiResponse<UserBudgetOverviewResponse>>('/users/budget-overview'),
+    },
+    {
+      key: 'categoryStats',
+      fn: () => apiService.get<CategoryStatsApiResponse>('/categories/stats'),
     },
   ],
   onSuccess: (data: Record<string, unknown>, dispatch: AppDispatch) => {

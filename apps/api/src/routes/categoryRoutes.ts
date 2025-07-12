@@ -1,5 +1,5 @@
 import { authenticate } from '../middleware/authMiddleware';
-import { addCategory, getCategories } from '../controllers/category.controller';
+import { addCategory, getCategories, getCategoryStats } from '../controllers/category.controller';
 import express from 'express';
 
 const router = express.Router();
@@ -8,6 +8,7 @@ const router = express.Router();
 // @route   GET /api/categories
 // @access  Private
 router.get('/', authenticate, getCategories);
+router.get('/stats', authenticate, getCategoryStats);
 
 // @desc    Add category
 // @route   POST /api/categories
