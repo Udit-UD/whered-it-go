@@ -1,134 +1,39 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useMemo, useEffect } from 'react';
 import TransactionTable from '@/components/dashboard/TransactionTable';
-import { Transaction, Category } from '@/types';
+import { Transaction, Category, ApiResponse } from '@/types';
 import { Footer } from '../components';
 import { tableColumns } from './utils';
+import apiService from '@/lib/apiService';
+import withPreloader from '@/hocs/withPreloader';
+import _ from 'lodash';
 
-// Mock categories data
-const mockCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Food & Dining',
-    icon: '🍽️',
-    color: '#FF6B6B',
-    userId: '1',
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: '2',
-    name: 'Transportation',
-    icon: '🚗',
-    color: '#4ECDC4',
-    userId: '1',
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: '3',
-    name: 'Shopping',
-    icon: '🛍️',
-    color: '#45B7D1',
-    userId: '1',
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: '4',
-    name: 'Entertainment',
-    icon: '🎬',
-    color: '#96CEB4',
-    userId: '1',
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: '5',
-    name: 'Bills & Utilities',
-    icon: '📄',
-    color: '#FFEAA7',
-    userId: '1',
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: '6',
-    name: 'Healthcare',
-    icon: '🏥',
-    color: '#DDA0DD',
-    userId: '1',
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: '7',
-    name: 'Salary',
-    icon: '💰',
-    color: '#98D8C8',
-    userId: '1',
-    createdAt: '',
-    updatedAt: '',
-  },
-];
+type TransactionsResponse = ApiResponse<Transaction[]>;
+type CategoriesResponse = ApiResponse<Category[]>;
 
-// Mock transactions data
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    amount: -45.5,
-    description: 'Lunch at Pizza Place',
-    categoryId: '1',
-    category: mockCategories[0],
-    date: '2025-07-01',
-    userId: '1',
-    transactionType: 'expense',
-    createdAt: '2025-07-01',
-    updatedAt: '2025-07-01',
-  },
-  {
-    id: '2',
-    amount: -25.0,
-    description: 'Gas Station',
-    categoryId: '2',
-    category: mockCategories[1],
-    date: '2025-07-02',
-    userId: '1',
-    transactionType: 'expense',
-    createdAt: '2025-07-02',
-    updatedAt: '2025-07-02',
-  },
-  {
-    id: '3',
-    amount: 3000.0,
-    description: 'Monthly Salary',
-    categoryId: '7',
-    category: mockCategories[6],
-    date: '2025-07-01',
-    userId: '1',
-    transactionType: 'income',
-    createdAt: '2025-07-01',
-    updatedAt: '2025-07-01',
-  },
-  {
-    id: '4',
-    amount: -120.0,
-    description: 'Grocery Shopping',
-    categoryId: '3',
-    category: mockCategories[2],
-    date: '2025-07-03',
-    userId: '1',
-    transactionType: 'expense',
-    createdAt: '2025-07-03',
-    updatedAt: '2025-07-03',
-  },
-];
+const TransactionPage = ({
+  preloadedData,
+  isLoading,
+}: {
+  isLoading: boolean;
+  preloadedData?: Record<string, unknown>;
+}) => {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-const TransactionPage = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    if (!isLoading) {
+      const categoriesResponse = preloadedData?.categories as CategoriesResponse;
+      const userCategoriesList = categoriesResponse?.data || [];
+
+      const transactionResponse = preloadedData?.transactions as TransactionsResponse;
+      const transactionData = transactionResponse?.data || [];
+
+      setCategories(userCategoriesList);
+      setTransactions(transactionData);
+    }
+  }, [isLoading, preloadedData]);
 
   // Sort transactions by date (newest first)
   const sortedTransactions = useMemo(() => {
@@ -137,37 +42,20 @@ const TransactionPage = () => {
     );
   }, [transactions]);
 
-  const handleAddTransaction = (
-    newTransactionData: Omit<Transaction, 'createdAt' | 'updatedAt'>
-  ) => {
-    const newTransaction: Transaction = {
-      ...newTransactionData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setTransactions(prev => [...prev, newTransaction]);
-  };
-
-  const handleEditTransaction = (id: string, updates: Partial<Transaction>) => {
-    setTransactions(prev =>
-      prev.map(transaction =>
-        transaction.id === id
-          ? { ...transaction, ...updates, updatedAt: new Date().toISOString() }
-          : transaction
-      )
-    );
+  const refetchTransactions = async () => {
+    try {
+      const response = await apiService.get<Transaction[]>('/transactions');
+      if (response.success) {
+        const transactionData = _.get(response, 'data', []);
+        setTransactions(transactionData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    }
   };
 
   const handleDeleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(transaction => transaction.id !== id));
-  };
-
-  // Simulate loading state
-  const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
+    setTransactions(prev => prev.filter(transaction => transaction._id !== id));
   };
 
   return (
@@ -175,20 +63,14 @@ const TransactionPage = () => {
       <div className="container mx-auto min-h-[90vh] w-3/4 px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold">Transactions</h1>
-          <div className="gapx-4 flex py-2">
-            <Button onClick={handleRefresh} variant="outline" disabled={isLoading}>
-              Refresh
-            </Button>
-          </div>
         </div>
 
         <TransactionTable
           columns={tableColumns}
           data={sortedTransactions}
-          categories={mockCategories}
+          categories={categories}
           isLoading={isLoading}
-          onAdd={handleAddTransaction}
-          onEdit={handleEditTransaction}
+          refetchTransactions={refetchTransactions}
           onDelete={handleDeleteTransaction}
           showActions={true}
           allowAdd={true}
@@ -202,4 +84,17 @@ const TransactionPage = () => {
   );
 };
 
-export default TransactionPage;
+const config = {
+  apiCalls: [
+    {
+      key: 'transactions',
+      fn: () => apiService.get<TransactionsResponse>('/transactions'),
+    },
+    {
+      key: 'categories',
+      fn: () => apiService.get<CategoriesResponse>('/categories'),
+    },
+  ],
+};
+
+export default withPreloader(TransactionPage, config);

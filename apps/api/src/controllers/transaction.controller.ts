@@ -56,24 +56,6 @@ export const addTransaction = asyncHandler(async (req: AuthenticatedRequest, res
 // @access  Private
 export const getTransactions = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
-
-  try {
-    const transactions = await Transaction.find({ userId }).sort({ date: -1 });
-    res.status(200).json({
-      success: true,
-      data: transactions,
-      message: 'Transactions retrieved successfully',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Something went wrong while retrieving transactions',
-    });
-  }
-});
-
-export const recentTransactions = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user?.id;
   const limit = parseInt(req.query.limit as string) || 20;
   const page = parseInt(req.query.page as string) || 1;
 

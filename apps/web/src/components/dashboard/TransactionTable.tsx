@@ -24,8 +24,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { cn, generateRandomId } from '@/lib/utils';
-import { Transaction, Category } from '@/types';
+import { Transaction, Category, ApiResponse } from '@/types';
 import { TRANSACTION_TYPES } from '@/constants';
+import apiService from '@/lib/apiService';
+import { toast } from 'sonner';
 
 export interface TableColumn {
   key: string;
@@ -40,16 +42,17 @@ interface EditingTransaction {
   amount: string;
   categoryId: string;
   date: Date;
-  transactionType?: 'income' | 'expense' | 'transfer';
+  transactionType?: 'income' | 'expense';
 }
+
+type TransactionResponse = ApiResponse<Transaction>;
 
 interface TransactionTableProps {
   columns: TableColumn[];
   data: Transaction[];
   categories: Category[];
   isLoading?: boolean;
-  onAdd?: (transaction: Omit<Transaction, 'createdAt' | 'updatedAt'>) => void;
-  onEdit?: (id: string, transaction: Partial<Transaction>) => void;
+  refetchTransactions?: () => void;
   onDelete?: (id: string) => void;
   showActions?: boolean;
   allowAdd?: boolean;
@@ -63,9 +66,9 @@ const TransactionTypeDropdown = ({
   onChange,
 }: {
   value: string;
-  onChange: (type: 'income' | 'expense' | 'transfer') => void;
+  onChange: (type: 'income' | 'expense') => void;
 }) => {
-  const onItemChange = (type: 'income' | 'expense' | 'transfer') => {
+  const onItemChange = (type: 'income' | 'expense') => {
     onChange(type);
   };
 
@@ -92,8 +95,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   data,
   categories,
   isLoading = false,
-  onAdd,
-  onEdit,
+  refetchTransactions,
   onDelete,
   showActions = true,
   allowAdd = true,
@@ -106,52 +108,37 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   const [editingData, setEditingData] = useState<EditingTransaction | null>(null);
 
   const handleEdit = (transaction: Transaction) => {
-    setEditingId(transaction.id);
+    setEditingId(transaction._id);
     setEditingData({
-      id: transaction.id,
+      id: transaction._id,
       description: transaction.description,
       amount: Math.abs(transaction.amount).toString(),
-      categoryId: transaction.categoryId,
+      categoryId: transaction.category?._id || '',
       date: new Date(transaction.date),
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingData) return;
 
-    const category = categories.find(c => c.id === editingData.categoryId);
-    if (!category) return;
-
-    const amount = parseFloat(editingData.amount);
-    const finalAmount =
-      editingData.transactionType === 'expense' ? -Math.abs(amount) : Math.abs(amount);
-
-    if (editingId && onEdit) {
-      // Update existing transaction
-      onEdit(editingId, {
-        description: editingData.description,
-        amount: finalAmount,
+    try {
+      const payload = {
+        description: editingData.description.trim(),
+        amount: Number(editingData.amount),
         categoryId: editingData.categoryId,
-        category: category,
-        date: format(editingData.date, 'yyyy-MM-dd'),
-        updatedAt: new Date().toISOString(),
-      });
-    } else if (onAdd) {
-      // Add new transaction
-      const newTransaction = {
-        description: editingData.description,
-        amount: finalAmount,
-        categoryId: editingData.categoryId,
-        category: category,
-        transactionType: editingData.transactionType,
-        date: format(editingData.date, 'yyyy-MM-dd'),
-        userId: '1', // This should come from user context
-        id: editingData.id,
+        date: editingData.date.toISOString(),
+        transactionType: editingData.transactionType || 'expense',
       };
-      onAdd(newTransaction);
+      const response = await apiService.post<TransactionResponse>('/transactions', payload);
+      if (response.success) {
+        toast.success('Transaction saved successfully');
+        refetchTransactions?.();
+        handleCancel();
+      }
+    } catch (error) {
+      toast.error('Failed to save transaction');
+      console.error('Error saving transaction:', error);
     }
-
-    handleCancel();
   };
 
   const handleCancel = () => {
@@ -172,7 +159,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
       id: generateRandomId(),
       description: '',
       amount: '',
-      categoryId: categories[0]?.id || '',
+      categoryId: categories[0]?._id || '',
       date: new Date(),
       transactionType: 'expense', // Default to expense
     });
@@ -185,7 +172,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     value: string;
     onChange: (value: string) => void;
   }) => {
-    const selectedCategory = categories.find(c => c.id === value);
+    const selectedCategory = categories.find(c => c._id === value);
 
     return (
       <DropdownMenu>
@@ -198,8 +185,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         <DropdownMenuContent className="w-56">
           {categories.map(category => (
             <DropdownMenuItem
-              key={category.id}
-              onClick={() => onChange(category.id)}
+              key={category._id}
+              onClick={() => onChange(category._id)}
               className="flex items-center"
             >
               <span className="mr-2">{category.icon}</span>
@@ -246,7 +233,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   };
 
   const renderCellContent = (transaction: Transaction, column: TableColumn, index: number) => {
-    const isEditing = editingId === transaction.id && editingData;
+    const isEditing = editingId === transaction._id && editingData;
     switch (column.key) {
       case 'id':
         return <span className="font-mono text-sm">{index + 1}</span>;
@@ -269,8 +256,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           />
         ) : (
           <div className="flex items-center">
-            <span className="mr-2">{transaction.category.icon}</span>
-            <span>{transaction.category.name}</span>
+            <span className="mr-2">{transaction.category?.icon}</span>
+            <span>{transaction.category?.name}</span>
           </div>
         );
 
@@ -285,7 +272,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           <span
             className={cn(
               'font-semibold',
-              transaction.transactionType === 'income' ? 'text-green-600' : 'text-red-600'
+              transaction.transactionType === 'income' ? 'text-green-600' : 'text-red-300'
             )}
           >
             Rs. {Math.abs(transaction.amount).toFixed(2)}
@@ -383,7 +370,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         </TableHeader>
         <TableBody>
           {data.map((transaction, index) => (
-            <TableRow key={transaction.id}>
+            <TableRow key={transaction._id}>
               {_.map(columns, column => (
                 <TableCell
                   key={column.key}
@@ -396,7 +383,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
               {showActions && (
                 <TableCell className="px-4 py-2 text-right" style={{ width: '100px' }}>
                   <div className="flex justify-end gap-2">
-                    {editingId === transaction.id ? (
+                    {editingId === transaction._id ? (
                       <>
                         <Button
                           size="sm"
@@ -425,7 +412,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDelete(transaction.id)}
+                            onClick={() => handleDelete(transaction._id)}
                             disabled={isAdding || editingId !== null}
                           >
                             <TrashIcon className="h-4 w-4" />

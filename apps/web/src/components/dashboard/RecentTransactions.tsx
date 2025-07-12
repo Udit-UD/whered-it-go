@@ -69,7 +69,7 @@ function RecentTransactions({
                     </p>
                     <div className="mt-1 flex items-center space-x-2">
                       <span className="text-muted-foreground text-xs">
-                        {transaction.category.name}
+                        {transaction.category?.name}
                       </span>
                       <span className="text-muted-foreground text-xs">•</span>
                       <span className="text-muted-foreground text-xs">
@@ -112,10 +112,7 @@ const config = {
   apiCalls: [
     {
       key: 'recentTransactions',
-      fn: () =>
-        apiService.get<ApiResponse<Transaction[]>>(
-          '/transactions/recent-transactions?limit=5&page=1'
-        ),
+      fn: () => apiService.get<ApiResponse<Transaction[]>>('/transactions?limit=5&page=1'),
     },
   ],
 };
