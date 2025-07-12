@@ -33,10 +33,7 @@ export const addTransaction = asyncHandler(async (req: AuthenticatedRequest, res
     if (!user) throw new Error('User not found');
     if (!user.monthlyBudget) throw new Error('User monthly budget not set');
 
-    user.monthlyBudget = user.monthlyBudget - amount;
-
     const savedTransaction = await transaction.save();
-    await user.save();
 
     res.status(201).json({
       success: true,
