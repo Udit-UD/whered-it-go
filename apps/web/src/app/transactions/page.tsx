@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import TransactionTable from '@/components/dashboard/TransactionTable';
 import { Transaction, Category, ApiResponse, TransactionType } from '@/types';
 import { tableColumns } from './utils';
@@ -9,10 +9,19 @@ import withPreloader from '@/hocs/withPreloader';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import _ from 'lodash';
-import { Pencil } from 'lucide-react';
+import { Pencil, ArrowUpDown, CalendarArrowUp, CalendarArrowDown, IndianRupee } from 'lucide-react';
 import { Dialog } from '@radix-ui/react-dialog';
 import { DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
+type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
 interface EditingTransaction {
   id: string;
   description: string;
@@ -26,6 +35,36 @@ interface EditingTransaction {
 
 type TransactionsResponse = ApiResponse<Transaction[]>;
 type CategoriesResponse = ApiResponse<Category[]>;
+
+const getSortOptions = (setSortOption: (option: SortOption) => void) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="ghost" size="icon" className="h-9 w-9">
+        <ArrowUpDown className="h-4 w-4" />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="start">
+      <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={() => setSortOption('date-desc')}>
+        <CalendarArrowDown className="mr-2 h-4 w-4" />
+        Date (Newest First)
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setSortOption('date-asc')}>
+        <CalendarArrowUp className="mr-2 h-4 w-4" />
+        Date (Oldest First)
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setSortOption('amount-desc')}>
+        <IndianRupee className="mr-2 h-4 w-4" />
+        Amount (High to Low)
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setSortOption('amount-asc')}>
+        <IndianRupee className="mr-2 h-4 w-4" />
+        Amount (Low to High)
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
 
 const TransactionPage = ({
   preloadedData,
@@ -41,6 +80,7 @@ const TransactionPage = ({
   const [pendingChanges, setPendingChanges] = useState<EditingTransaction[]>([]);
   const [modal, setModal] = useState<string | null>(null);
   const [isStateLoading, setIsStateLoading] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>('date-desc');
 
   useEffect(() => {
     if (!isLoading) {
@@ -55,16 +95,9 @@ const TransactionPage = ({
     }
   }, [isLoading, preloadedData]);
 
-  // Sort transactions by date (newest first)
-  const sortedTransactions = useMemo(() => {
-    return [...transactions].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  }, [transactions]);
-
-  const refetchTransactions = async () => {
+  const refetchTransactions = useCallback(async () => {
     try {
-      const response = await apiService.get<Transaction[]>('/transactions');
+      const response = await apiService.get<Transaction[]>('/transactions?sort=' + sortOption);
       if (response.success) {
         const transactionData = _.get(response, 'data', []);
         setTransactions(transactionData);
@@ -72,7 +105,11 @@ const TransactionPage = ({
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     }
-  };
+  }, [sortOption]);
+
+  useEffect(() => {
+    refetchTransactions();
+  }, [refetchTransactions]);
 
   const onEditClick = () => {
     setIsEditing(true);
@@ -167,6 +204,8 @@ const TransactionPage = ({
             </p>
           </div>
           <div className="flex gap-2">
+            {getSortOptions(setSortOption)}
+
             {isEditing || isAddingNewTransaction ? (
               <>
                 <Button size={'sm'} onClick={handleSaveChanges} className="bg-white text-black">
@@ -186,7 +225,7 @@ const TransactionPage = ({
 
         <TransactionTable
           columns={tableColumns}
-          data={sortedTransactions}
+          data={transactions}
           categories={categories}
           isLoading={isLoading}
           allowAdd={true}
@@ -227,7 +266,7 @@ const config = {
   apiCalls: [
     {
       key: 'transactions',
-      fn: () => apiService.get<TransactionsResponse>('/transactions'),
+      fn: () => apiService.get<TransactionsResponse>('/transactions?sort=date-desc'),
     },
     {
       key: 'categories',

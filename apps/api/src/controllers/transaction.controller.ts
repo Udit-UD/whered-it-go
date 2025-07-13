@@ -5,6 +5,8 @@ import Transaction from '../models/Transaction';
 import User from '../models/User';
 import _ from 'lodash';
 
+type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | '';
+
 const validateTransactiondata = (data: any) => {
   _.map(data, value => {
     const { amount, description, categoryId, date, transactionType } = value;
@@ -68,11 +70,18 @@ export const getTransactions = asyncHandler(async (req: AuthenticatedRequest, re
   const userId = req.user?.id;
   const limit = parseInt(req.query.limit as string) || 20;
   const page = parseInt(req.query.page as string) || 1;
+  const sort = req.query.sort as SortOption;
 
   try {
     const transactions = await Transaction.find({ userId })
       .populate('categoryId')
-      .sort({ date: -1 })
+      .sort(
+        (sort === 'date-desc' && { date: -1 }) ||
+          (sort === 'date-asc' && { date: 1 }) ||
+          (sort === 'amount-desc' && { amount: -1 }) ||
+          (sort === 'amount-asc' && { amount: 1 }) ||
+          {}
+      )
       .skip((page - 1) * limit)
       .limit(limit);
 
