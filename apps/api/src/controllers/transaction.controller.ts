@@ -195,3 +195,36 @@ export const bulkUpdateTransactions = asyncHandler(
     }
   }
 );
+
+export const deleteTransaction = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: 'Transaction ID is required',
+    });
+  }
+
+  try {
+    const transaction = await Transaction.findOneAndDelete({ _id: id, userId });
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Transaction deleted successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Something went wrong while deleting transaction',
+    });
+  }
+});

@@ -40,6 +40,7 @@ const TransactionPage = ({
   const [isAddingNewTransaction, setIsAddingNewTransaction] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<EditingTransaction[]>([]);
   const [modal, setModal] = useState<string | null>(null);
+  const [isStateLoading, setIsStateLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
@@ -137,6 +138,24 @@ const TransactionPage = ({
     setModal(id);
   };
 
+  const onDeleteTransaction = async () => {
+    if (!modal) return;
+    setIsStateLoading(true);
+    try {
+      const response = await apiService.delete(`/transactions/${modal}`);
+      if (response.success) {
+        toast.success('Transaction deleted successfully');
+        setModal(null);
+        refetchTransactions();
+      }
+    } catch (error) {
+      console.log('Error deleting transaction:', error);
+      toast.error('Failed to delete transaction');
+    } finally {
+      setIsStateLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="container mx-auto min-h-[90vh] w-3/4 px-4 py-8">
@@ -193,21 +212,8 @@ const TransactionPage = ({
                 Cancel
               </Button>
 
-              <Button
-                variant="destructive"
-                onClick={async () => {
-                  try {
-                    await apiService.delete(`/transactions/${modal}`);
-                    toast.success('Transaction deleted successfully');
-                    setModal(null);
-                    refetchTransactions();
-                  } catch (error) {
-                    toast.error('Failed to delete transaction');
-                    console.error('Error deleting transaction:', error);
-                  }
-                }}
-              >
-                Delete
+              <Button variant="destructive" onClick={onDeleteTransaction} disabled={isStateLoading}>
+                {isStateLoading ? 'Deleting...' : 'Delete'}
               </Button>
             </DialogFooter>
           </DialogContent>
