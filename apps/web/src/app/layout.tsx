@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from '@/components/appComponents/Navbar';
 import { ReduxProvider } from '@/components/ReduxProvider';
 import { Toaster } from 'sonner';
+import { Footer } from './components';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -27,14 +28,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen flex-col antialiased`}
       >
         <ReduxProvider>
-          <Toaster position="top-right" />
+          <Toaster position="top-right" duration={2000} />
           <Navbar />
           <main className="flex flex-1 flex-col">{children}</main>
+          <Footer />
         </ReduxProvider>
       </body>
     </html>

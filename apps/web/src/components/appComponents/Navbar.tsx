@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import handleGoogleLogin from '@/lib/auth';
 import { clearUser, setUser } from '@/store/slices/userSlice';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import Image from 'next/image';
 
 const Navbar = () => {
-  const user = useAppSelector((state) => state.user);
+  const user = useAppSelector(state => state.user);
   const dispatch = useAppDispatch();
   const router = useRouter();
 
@@ -49,7 +50,9 @@ const Navbar = () => {
           <Link href="/" className="flex items-center space-x-2">
             <div className="flex items-center space-x-2">
               <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-                <span className="text-primary-foreground text-lg font-bold">💰</span>
+                <span className="text-primary-foreground text-lg font-bold">
+                  <Image src={'/logo.png'} alt="Where'd It Go Logo" width={60} height={60} />
+                </span>
               </div>
               <span className="text-xl font-bold">Where&apos;d It Go</span>
             </div>

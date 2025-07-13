@@ -1,5 +1,5 @@
 import React from 'react';
-import { HeroSection, Features, WhyMe, Footer } from './components';
+import { HeroSection, Features, WhyMe } from './components';
 
 const page = () => {
   return (
@@ -10,8 +10,6 @@ const page = () => {
       <Features />
       {/* ABOUT */}
       <WhyMe />
-      {/* FOOTER */}
-      <Footer />
     </div>
   );
 };

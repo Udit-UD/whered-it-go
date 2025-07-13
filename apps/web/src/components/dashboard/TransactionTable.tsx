@@ -26,6 +26,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { cn, generateRandomId } from '@/lib/utils';
 import { Transaction, Category, TransactionType } from '@/types';
 import { TRANSACTION_TYPES, USER_CURRENCY } from '@/constants';
+import { MdDelete } from 'react-icons/md';
 
 export interface TableColumn {
   key: string;
@@ -56,6 +57,7 @@ interface TransactionTableProps {
   onAddingNewRow: (isAddingNewRow: boolean) => void;
   onChangesUpdate?: (changes: EditingTransaction[]) => void;
   isAddingNewRow?: boolean;
+  onRemoveTransaction: (id: string) => void;
 }
 
 const TransactionTypeDropdown = ({
@@ -155,11 +157,19 @@ const CategoryDropdown = ({
   );
 };
 
-const DeleteCell = (id: string, onDelete: (id: string) => void) => {
+const DeleteCell = ({
+  id,
+  onDelete,
+  icon,
+}: {
+  id: string;
+  onDelete: (id: string) => void;
+  icon: React.ReactNode;
+}) => {
   return (
     <TableCell width={'30px'} className="px-0 py-2">
       <Button variant="ghost" size="icon" onClick={() => onDelete(id)} className="py-0">
-        <X size={'16px'} />
+        {icon}
       </Button>
     </TableCell>
   );
@@ -176,6 +186,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   onAddingNewRow,
   onChangesUpdate,
   isAddingNewRow,
+  onRemoveTransaction,
 }) => {
   const [editingTransactions, setEditingTransactions] = useState<
     Record<string, EditingTransaction>
@@ -483,7 +494,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   {renderCellContent(transaction, column, index)}
                 </TableCell>
               ))}
-              {DeleteCell(transaction._id, onDelete)}
+              {DeleteCell({
+                id: transaction._id,
+                onDelete: onRemoveTransaction,
+                icon: <MdDelete size={'16px'} />,
+              })}
             </TableRow>
           ))}
           {newTransactions.map((newTransaction, index) => (
@@ -503,7 +518,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   {renderCellContentForNewTransaction(newTransaction, column, index)}
                 </TableCell>
               ))}
-              {DeleteCell(newTransaction.id, onDelete)}
+              {DeleteCell({ id: newTransaction.id, onDelete, icon: <X size={'16px'} /> })}
             </TableRow>
           ))}
           {data.length === 0 && newTransactions.length === 0 && (

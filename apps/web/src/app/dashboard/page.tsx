@@ -70,6 +70,8 @@ function DashboardPage({
 }: {
   isLoading: boolean;
   preloadedData?: Record<string, unknown>;
+  error?: Error | null;
+  retry?: () => void;
 }) {
   const userData = useAppSelector(state => state.user);
   const [mode, setMode] = useState(MODE_OPTIONS.VIEW);

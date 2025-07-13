@@ -28,14 +28,20 @@ interface PreloaderState {
   error: Error | null;
 }
 
+// Next.js page props interface (Next.js 15+)
+interface NextPageProps {
+  params?: Promise<Record<string, string | string[]>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
 // HOC Factory
-function withPreloader<P extends object>(
+function withPreloader<P extends object = {}>(
   WrappedComponent: ComponentType<P & PreloaderProps>,
   config: PreloaderConfig
 ) {
   const { apiCalls, onSuccess, onError, timeout = 10000 } = config;
 
-  const PreloaderHOC = (props: P) => {
+  const PreloaderHOC = (props: any) => {
     const [state, setState] = useState<PreloaderState>({
       isLoading: true,
       data: {},
@@ -107,7 +113,7 @@ function withPreloader<P extends object>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Pass all state to the wrapped component - let it handle the UI representation
+    // Pass all props to the wrapped component along with preloader state
     return (
       <WrappedComponent
         {...props}
@@ -126,4 +132,4 @@ function withPreloader<P extends object>(
 }
 
 export default withPreloader;
-export type { ApiCall, PreloaderConfig, PreloaderProps };
+export type { ApiCall, PreloaderConfig, PreloaderProps, NextPageProps };

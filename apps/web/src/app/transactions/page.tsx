@@ -3,13 +3,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import TransactionTable from '@/components/dashboard/TransactionTable';
 import { Transaction, Category, ApiResponse, TransactionType } from '@/types';
-import { Footer } from '../components';
 import { tableColumns } from './utils';
 import apiService from '@/lib/apiService';
 import withPreloader from '@/hocs/withPreloader';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import _ from 'lodash';
+import { Pencil } from 'lucide-react';
+import { Dialog } from '@radix-ui/react-dialog';
+import { DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface EditingTransaction {
   id: string;
@@ -37,6 +39,7 @@ const TransactionPage = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingNewTransaction, setIsAddingNewTransaction] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<EditingTransaction[]>([]);
+  const [modal, setModal] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading) {
@@ -130,11 +133,20 @@ const TransactionPage = ({
     }
   };
 
+  const onRemoveTransaction = (id: string) => {
+    setModal(id);
+  };
+
   return (
     <>
       <div className="container mx-auto min-h-[90vh] w-3/4 px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Transactions</h1>
+          <div>
+            <h1 className="text-3xl font-bold">Transactions</h1>
+            <p className="text-sm">
+              Your monthly expenses are logged here, add or update new expenses in this table
+            </p>
+          </div>
           <div className="flex gap-2">
             {isEditing || isAddingNewTransaction ? (
               <>
@@ -146,8 +158,8 @@ const TransactionPage = ({
                 </Button>
               </>
             ) : (
-              <Button onClick={onEditClick} size={'sm'} className="bg-white text-black">
-                Edit
+              <Button onClick={onEditClick} size={'sm'} className="gap-1 bg-white text-black">
+                <Pencil size={14} /> Edit
               </Button>
             )}
           </div>
@@ -163,10 +175,41 @@ const TransactionPage = ({
           isAddingNewRow={isAddingNewTransaction}
           onAddingNewRow={setIsAddingNewTransaction}
           onChangesUpdate={setPendingChanges}
+          onRemoveTransaction={onRemoveTransaction}
           emptyMessage="No transactions found. Add your first transaction to get started."
         />
       </div>
-      <Footer />
+      {!_.isEmpty(modal) ? (
+        <Dialog open={true} onOpenChange={() => setModal(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Transaction</DialogTitle>
+            </DialogHeader>
+            <div className="bg-destructive w-full text-sm">
+              Are you sure you want to delete this transaction? This action cannot be undone.
+            </div>
+            <DialogFooter>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  try {
+                    await apiService.delete(`/transactions/${modal}`);
+                    toast.success('Transaction deleted successfully');
+                    setModal(null);
+                    refetchTransactions();
+                  } catch (error) {
+                    toast.error('Failed to delete transaction');
+                    console.error('Error deleting transaction:', error);
+                  }
+                }}
+              >
+                Delete
+              </Button>
+              <Button onClick={() => setModal(null)}>Cancel</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </>
   );
 };
