@@ -12,6 +12,8 @@ export interface ApiError {
 }
 
 // Financial types
+
+export type TransactionType = 'income' | 'expense' | 'saving' | 'investment';
 export interface Transaction {
   _id: string;
   amount: number;
@@ -20,7 +22,7 @@ export interface Transaction {
   categoryId?: string;
   date: string;
   userId: string;
-  transactionType: 'expense' | 'income';
+  transactionType: TransactionType;
 }
 
 export interface Category {

@@ -101,6 +101,7 @@ export const CURRENCIES = [
 export const TRANSACTION_TYPES = {
   INCOME: 'income',
   EXPENSE: 'expense',
+  INVESTMENT: 'investment',
 } as const;
 
 // Budget periods

@@ -125,6 +125,9 @@ export const getCategoryStats = asyncHandler(async (req: AuthenticatedRequest, r
           categoryIcon: '$categoryDetails.icon',
         },
       },
+      {
+        $sort: { totalAmount: -1 },
+      },
     ]);
 
     const budgetPercentageSpentOnEachCategory = categories.map(category => {

@@ -20,6 +20,7 @@ import { Check, Loader, PlusIcon } from 'lucide-react';
 import DatePickerInput from '../dashboard/DatePicker';
 import withPreloader from '@/hocs/withPreloader';
 import { ApiResponse, Transaction, Category } from '@/types';
+import { Separator } from '../ui/separator';
 
 interface ExpenseError {
   title?: string;
@@ -42,6 +43,7 @@ const inititalExpenseDetails = {
   title: '',
   amount: '',
   category: { _id: 'NEW_CATEGORY', name: '', icon: '🍽️' },
+  transactionType: 'expense',
   date: new Date(),
 };
 
@@ -239,7 +241,7 @@ const ExpenseLogModal: React.FC<
         amount: Number(expenseDetails.amount),
         categoryId: selectedCategoryId,
         date: expenseDetails.date.toISOString(),
-        transactionType: 'expense',
+        transactionType: expenseDetails.transactionType,
       };
 
       const response = await apiService.post<TransactionResponse>('/transactions/', payload);
@@ -271,50 +273,55 @@ const ExpenseLogModal: React.FC<
       <DialogHeader>
         <DialogTitle>Log New Expense</DialogTitle>
         <DialogDescription>Add a new expense to track your spending.</DialogDescription>
+        <Separator />
       </DialogHeader>
 
       <div className="space-y-4">
-        {/* Title Field */}
-        <div className="flex flex-col gap-2 *:space-y-2">
-          <label className="text-foreground text-sm font-medium">
-            Title <span className="text-red-300">*</span>
-          </label>
-          <Input
-            name="title"
-            placeholder="Enter expense title..."
-            value={_.get(expenseDetails, 'title', '')}
-            id="title"
-            onChange={onUpdateInput}
-            className={cn(errors.title && 'border-red-300')}
-          />
-          {errors.title && <p className="mt-1 text-xs font-medium text-red-300">{errors.title}</p>}
-        </div>
-
-        {/* Amount Field */}
-        <div className="flex flex-col gap-2 *:space-y-2">
-          <label className="text-foreground text-sm font-medium">
-            Amount <span className="text-red-300">*</span>
-          </label>
-          <div className="relative">
-            <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 transform">
-              ₹
-            </span>
+        <div className="flex w-full items-center gap-2">
+          {/* Title Field */}
+          <div className="flex w-full flex-col gap-2 *:space-y-2">
+            <label className="text-foreground text-sm font-medium">
+              Title <span className="text-red-300">*</span>
+            </label>
             <Input
-              name="amount"
-              placeholder="150"
-              value={_.get(expenseDetails, 'amount', '')}
+              name="title"
+              placeholder="Enter expense title..."
+              value={_.get(expenseDetails, 'title', '')}
+              id="title"
               onChange={onUpdateInput}
-              className={cn('pl-8', errors.amount && 'border-red-300')}
-              id="amount"
-              min="0"
+              className={cn(errors.title && 'border-red-300', 'border-[#444]')}
             />
+            {errors.title && (
+              <p className="mt-1 text-xs font-medium text-red-300">{errors.title}</p>
+            )}
           </div>
-          {errors.amount && (
-            <p className="mt-1 text-xs font-medium text-red-300">{errors.amount}</p>
-          )}
+
+          {/* Amount Field */}
+          <div className="flex w-full flex-col gap-2 *:space-y-2">
+            <label className="text-foreground text-sm font-medium">
+              Amount <span className="text-red-300">*</span>
+            </label>
+            <div className="relative">
+              <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2 transform">
+                ₹
+              </span>
+              <Input
+                name="amount"
+                placeholder="150"
+                value={_.get(expenseDetails, 'amount', '')}
+                onChange={onUpdateInput}
+                className={cn('border-[#444] pl-8', errors.amount && 'border-red-300')}
+                id="amount"
+                min="0"
+              />
+            </div>
+            {errors.amount && (
+              <p className="mt-1 text-xs font-medium text-red-300">{errors.amount}</p>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2 *:space-y-2">
+        <div className="relative flex flex-col gap-2 *:space-y-2">
           <label className="text-foreground text-sm font-medium">
             Date <span className="text-red-300">*</span>
           </label>
@@ -325,7 +332,7 @@ const ExpenseLogModal: React.FC<
         </div>
 
         {isAddingCategory ? (
-          <div className="border-primary/20 bg-primary/5 space-y-3 rounded-lg border p-4">
+          <div className="bg-primary/5 space-y-3 rounded-lg border border-[#444] p-4">
             <div className="flex items-center justify-between">
               <label className="text-foreground text-sm font-medium">
                 New Category <span className="text-red-300">*</span>
@@ -345,7 +352,7 @@ const ExpenseLogModal: React.FC<
             <div className="flex items-center gap-3">
               <div
                 onClick={toggleIconPicker}
-                className="relative flex h-10 w-12 items-center justify-center rounded-lg border p-0 text-lg"
+                className="relative flex h-10 w-12 items-center justify-center rounded-lg border border-[#444] p-0 text-lg"
               >
                 {_.get(expenseDetails, 'category.icon', '🍽️')}
                 <EmojiPicker
@@ -368,9 +375,14 @@ const ExpenseLogModal: React.FC<
                 id="category"
                 name="category"
                 onChange={onUpdateInput}
-                className={cn('flex-1', errors.category && 'border-red-300')}
+                className={cn('flex-1 border-[#444]', errors.category && 'border-red-300')}
               />
-              <Button variant="outline" onClick={saveNewCategory} disabled={isLocalStateLoading}>
+              <Button
+                variant="outline"
+                onClick={saveNewCategory}
+                disabled={isLocalStateLoading}
+                className="border-[#444]"
+              >
                 {isLocalStateLoading ? (
                   <Loader className="h-4 w-4 animate-spin" />
                 ) : (
@@ -403,7 +415,7 @@ const ExpenseLogModal: React.FC<
                 <Card
                   key={category._id}
                   className={cn(
-                    'cursor-pointer transition-all duration-200 hover:scale-105',
+                    'cursor-pointer border-[#444] transition-all duration-200 hover:scale-105',
                     selectedCategoryId === category._id
                       ? 'ring-primary bg-primary/10 ring-2'
                       : 'hover:bg-secondary'
@@ -437,13 +449,16 @@ const ExpenseLogModal: React.FC<
         </div>
       </div>
 
-      <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button onClick={onSaveExpense} disabled={isLocalStateLoading}>
-          {isLocalStateLoading ? 'Saving Category...' : 'Log Expense'}
-        </Button>
+      <DialogFooter className="flex !flex-col">
+        <Separator />
+        <div className="mt-1 flex w-full items-center justify-end gap-1">
+          <Button variant="outline" onClick={onCancel} className="border-[#444]">
+            Cancel
+          </Button>
+          <Button onClick={onSaveExpense} disabled={isLocalStateLoading}>
+            {isLocalStateLoading ? 'Saving Category...' : 'Log Expense'}
+          </Button>
+        </div>
       </DialogFooter>
     </DialogContent>
   );

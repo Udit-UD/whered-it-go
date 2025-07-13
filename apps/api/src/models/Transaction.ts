@@ -7,7 +7,7 @@ export interface ITransaction extends Document {
   categoryId: mongoose.Schema.Types.ObjectId;
   date: Date;
   userId: mongoose.Schema.Types.ObjectId;
-  transactionType: 'income' | 'expense';
+  transactionType: 'income' | 'expense' | 'saving' | 'investment';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,7 +49,7 @@ const transactionSchema = new Schema<ITransaction>(
       type: String,
       required: [true, 'Transaction type is required'],
       enum: {
-        values: ['income', 'expense'],
+        values: ['income', 'expense', 'saving', 'investment'],
         message: 'Transaction type must be either income or expense',
       },
     },

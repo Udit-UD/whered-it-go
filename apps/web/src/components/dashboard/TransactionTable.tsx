@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import _ from 'lodash';
 import { format } from 'date-fns';
-import { CalendarIcon, EditIcon, SaveIcon, XIcon, TrashIcon } from 'lucide-react';
+import { CalendarIcon, X } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -24,10 +24,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { cn, generateRandomId } from '@/lib/utils';
-import { Transaction, Category, ApiResponse } from '@/types';
-import { TRANSACTION_TYPES } from '@/constants';
-import apiService from '@/lib/apiService';
-import { toast } from 'sonner';
+import { Transaction, Category, TransactionType } from '@/types';
+import { TRANSACTION_TYPES, USER_CURRENCY } from '@/constants';
 
 export interface TableColumn {
   key: string;
@@ -42,23 +40,22 @@ interface EditingTransaction {
   amount: string;
   categoryId: string;
   date: Date;
-  transactionType?: 'income' | 'expense';
+  transactionType?: TransactionType;
+  isNew?: boolean;
+  isModified?: boolean;
 }
-
-type TransactionResponse = ApiResponse<Transaction>;
 
 interface TransactionTableProps {
   columns: TableColumn[];
   data: Transaction[];
   categories: Category[];
   isLoading?: boolean;
-  refetchTransactions?: () => void;
-  onDelete?: (id: string) => void;
-  showActions?: boolean;
   allowAdd?: boolean;
-  allowEdit?: boolean;
-  allowDelete?: boolean;
   emptyMessage?: string;
+  isEditing?: boolean;
+  onAddingNewRow: (isAddingNewRow: boolean) => void;
+  onChangesUpdate?: (changes: EditingTransaction[]) => void;
+  isAddingNewRow?: boolean;
 }
 
 const TransactionTypeDropdown = ({
@@ -66,17 +63,17 @@ const TransactionTypeDropdown = ({
   onChange,
 }: {
   value: string;
-  onChange: (type: 'income' | 'expense') => void;
+  onChange: (type: TransactionType) => void;
 }) => {
-  const onItemChange = (type: 'income' | 'expense') => {
+  const onItemChange = (type: TransactionType) => {
     onChange(type);
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={'w-full'} size="sm">
-          {value.toUpperCase()}
+        <Button variant="outline" className={'w-full justify-start'} size="sm">
+          {value.charAt(0).toUpperCase() + value.slice(1)}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
@@ -90,222 +87,340 @@ const TransactionTypeDropdown = ({
   );
 };
 
+const DatePicker = ({ value, onChange }: { value: Date; onChange: (date: Date) => void }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            'w-full justify-start text-left font-normal',
+            !value && 'text-muted-foreground'
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {value ? format(value, 'PPP') : <span>Pick a date</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value}
+          onSelect={date => {
+            if (date) {
+              onChange(date);
+              setOpen(false);
+            }
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+const CategoryDropdown = ({
+  value,
+  onChange,
+  categories,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  categories: Category[];
+}) => {
+  const selectedCategory = categories.find(c => c._id === value);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="w-full justify-start">
+          <span className="mr-2">{selectedCategory?.icon}</span>
+          {selectedCategory?.name}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56">
+        {categories.map(category => (
+          <DropdownMenuItem
+            key={category._id}
+            onClick={() => onChange(category._id)}
+            className="flex items-center"
+          >
+            <span className="mr-2">{category.icon}</span>
+            <span>{category.name}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+const DeleteCell = (id: string, onDelete: (id: string) => void) => {
+  return (
+    <TableCell width={'30px'} className="px-0 py-2">
+      <Button variant="ghost" size="icon" onClick={() => onDelete(id)} className="py-0">
+        <X size={'16px'} />
+      </Button>
+    </TableCell>
+  );
+};
+
 const TransactionTable: React.FC<TransactionTableProps> = ({
   columns,
   data,
   categories,
   isLoading = false,
-  refetchTransactions,
-  onDelete,
-  showActions = true,
   allowAdd = true,
-  allowEdit = true,
-  allowDelete = true,
   emptyMessage = 'No transactions found.',
+  isEditing = false,
+  onAddingNewRow,
+  onChangesUpdate,
+  isAddingNewRow,
 }) => {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingData, setEditingData] = useState<EditingTransaction | null>(null);
+  const [editingTransactions, setEditingTransactions] = useState<
+    Record<string, EditingTransaction>
+  >({});
+  const [newTransactions, setNewTransactions] = useState<EditingTransaction[]>([]);
+
+  useEffect(() => {
+    if (!isAddingNewRow) {
+      setNewTransactions([]);
+    }
+  }, [isAddingNewRow]);
 
   const handleEdit = (transaction: Transaction) => {
-    setEditingId(transaction._id);
-    setEditingData({
-      id: transaction._id,
-      description: transaction.description,
-      amount: Math.abs(transaction.amount).toString(),
-      categoryId: transaction.category?._id || '',
-      date: new Date(transaction.date),
-    });
+    if (!isEditing) return;
+
+    setEditingTransactions(prev => ({
+      ...prev,
+      [transaction._id]: {
+        id: transaction._id,
+        description: transaction.description,
+        amount: Math.abs(transaction.amount).toString(),
+        categoryId: transaction.category?._id || '',
+        date: new Date(transaction.date),
+        transactionType: transaction.transactionType,
+        isModified: false,
+      },
+    }));
   };
 
-  const handleSave = async () => {
-    if (!editingData) return;
-
-    try {
-      const payload = {
-        description: editingData.description.trim(),
-        amount: Number(editingData.amount),
-        categoryId: editingData.categoryId,
-        date: editingData.date.toISOString(),
-        transactionType: editingData.transactionType || 'expense',
-      };
-      const response = await apiService.post<TransactionResponse>('/transactions', payload);
-      if (response.success) {
-        toast.success('Transaction saved successfully');
-        refetchTransactions?.();
-        handleCancel();
-      }
-    } catch (error) {
-      toast.error('Failed to save transaction');
-      console.error('Error saving transaction:', error);
-    }
+  const handleUpdateTransaction = (
+    id: string,
+    field: keyof EditingTransaction,
+    value: string | Date | TransactionType
+  ) => {
+    setEditingTransactions(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+        isModified: true,
+      },
+    }));
   };
 
-  const handleCancel = () => {
-    setEditingId(null);
-    setIsAdding(false);
-    setEditingData(null);
-  };
-
-  const handleDelete = (id: string) => {
-    if (onDelete) {
-      onDelete(id);
-    }
+  const handleUpdateNewTransaction = (
+    index: number,
+    field: keyof EditingTransaction,
+    value: string | Date | TransactionType
+  ) => {
+    setNewTransactions(prev => prev.map((tx, i) => (i === index ? { ...tx, [field]: value } : tx)));
   };
 
   const handleAddNew = () => {
-    setIsAdding(true);
-    setEditingData({
-      id: generateRandomId(),
-      description: '',
-      amount: '',
-      categoryId: categories[0]?._id || '',
-      date: new Date(),
-      transactionType: 'expense', // Default to expense
-    });
+    onAddingNewRow(true);
+
+    setNewTransactions(prev => [
+      ...prev,
+      {
+        id: generateRandomId(),
+        description: '',
+        amount: '',
+        categoryId: categories[0]?._id || '',
+        date: new Date(),
+        transactionType: 'expense',
+        isNew: true,
+      },
+    ]);
   };
 
-  const CategoryDropdown = ({
-    value,
-    onChange,
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-  }) => {
-    const selectedCategory = categories.find(c => c._id === value);
-
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full justify-start">
-            <span className="mr-2">{selectedCategory?.icon}</span>
-            {selectedCategory?.name}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
-          {categories.map(category => (
-            <DropdownMenuItem
-              key={category._id}
-              onClick={() => onChange(category._id)}
-              className="flex items-center"
-            >
-              <span className="mr-2">{category.icon}</span>
-              <span>{category.name}</span>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  };
-
-  const DatePicker = ({ value, onChange }: { value: Date; onChange: (date: Date) => void }) => {
-    const [open, setOpen] = useState(false);
-
-    return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              'w-full justify-start text-left font-normal',
-              !value && 'text-muted-foreground'
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {value ? format(value, 'PPP') : <span>Pick a date</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={date => {
-              if (date) {
-                onChange(date);
-                setOpen(false);
-              }
-            }}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
-    );
+  const onDelete = (id: string) => {
+    setNewTransactions(prev => prev.filter(tx => tx.id !== id));
   };
 
   const renderCellContent = (transaction: Transaction, column: TableColumn, index: number) => {
-    const isEditing = editingId === transaction._id && editingData;
+    const editingData = editingTransactions[transaction._id];
+    const isCurrentlyEditing = isEditing && editingData;
+
     switch (column.key) {
       case 'id':
         return <span className="font-mono text-sm">{index + 1}</span>;
       case 'title':
       case 'description':
-        return isEditing ? (
+        return isCurrentlyEditing ? (
           <Input
             value={editingData.description}
-            onChange={e => setEditingData({ ...editingData, description: e.target.value })}
+            onChange={e => handleUpdateTransaction(transaction._id, 'description', e.target.value)}
+            onClick={() => !editingData && handleEdit(transaction)}
           />
         ) : (
-          transaction.description
+          <div
+            className={isEditing ? 'cursor-pointer rounded p-2 hover:bg-gray-100' : ''}
+            onClick={() => isEditing && handleEdit(transaction)}
+          >
+            {transaction.description}
+          </div>
         );
 
       case 'category':
-        return isEditing ? (
+        return isCurrentlyEditing ? (
           <CategoryDropdown
             value={editingData.categoryId}
-            onChange={value => setEditingData({ ...editingData, categoryId: value })}
+            onChange={value => handleUpdateTransaction(transaction._id, 'categoryId', value)}
+            categories={categories}
           />
         ) : (
-          <div className="flex items-center">
+          <div
+            className={
+              isEditing
+                ? 'flex cursor-pointer items-center rounded p-2 hover:bg-gray-100'
+                : 'flex items-center'
+            }
+            onClick={() => isEditing && handleEdit(transaction)}
+          >
             <span className="mr-2">{transaction.category?.icon}</span>
             <span>{transaction.category?.name}</span>
           </div>
         );
 
       case 'amount':
-        return isEditing ? (
+        return isCurrentlyEditing ? (
           <Input
             value={editingData.amount}
             placeholder="0"
-            onChange={e => setEditingData({ ...editingData, amount: e.target.value })}
+            onChange={e => handleUpdateTransaction(transaction._id, 'amount', e.target.value)}
           />
         ) : (
-          <span
-            className={cn(
-              'font-semibold',
-              transaction.transactionType === 'income' ? 'text-green-600' : 'text-red-300'
-            )}
+          <div
+            className={isEditing ? 'cursor-pointer rounded p-2 hover:bg-gray-100' : ''}
+            onClick={() => isEditing && handleEdit(transaction)}
           >
-            Rs. {Math.abs(transaction.amount).toFixed(2)}
-          </span>
+            <span
+              className={cn(
+                'font-semibold',
+                transaction.transactionType === 'income' ? 'text-green-600' : 'text-red-300'
+              )}
+            >
+              {USER_CURRENCY} {Math.abs(transaction.amount).toFixed(2)}
+            </span>
+          </div>
         );
 
       case 'date':
-        return isEditing ? (
+        return isCurrentlyEditing ? (
           <DatePicker
             value={editingData.date}
-            onChange={date => setEditingData({ ...editingData, date })}
+            onChange={date => handleUpdateTransaction(transaction._id, 'date', date)}
           />
         ) : (
-          format(new Date(transaction.date), 'MMM dd, yyyy')
+          <div
+            className={isEditing ? 'cursor-pointer rounded p-2 hover:bg-gray-100' : ''}
+            onClick={() => isEditing && handleEdit(transaction)}
+          >
+            {format(new Date(transaction.date), 'MMM dd, yyyy')}
+          </div>
         );
 
       case 'transactionType':
-        return isEditing ? (
+        return isCurrentlyEditing ? (
           <TransactionTypeDropdown
-            value={_.get(editingData, 'transactionType', 'expense')}
-            onChange={type => setEditingData({ ...editingData, transactionType: type })}
+            value={editingData.transactionType || 'expense'}
+            onChange={type => handleUpdateTransaction(transaction._id, 'transactionType', type)}
           />
         ) : (
-          <span className="capitalize">{transaction.transactionType}</span>
+          <div
+            className={isEditing ? 'cursor-pointer rounded p-2 hover:bg-gray-100' : ''}
+            onClick={() => isEditing && handleEdit(transaction)}
+          >
+            <span className="capitalize">{transaction.transactionType}</span>
+          </div>
         );
       default:
         const value = transaction[column.key as keyof Transaction];
         if (typeof value === 'string' || typeof value === 'number') {
-          return value || '-';
+          return isEditing ? (
+            <div
+              className="cursor-pointer rounded p-2 hover:bg-gray-100"
+              onClick={() => handleEdit(transaction)}
+            >
+              {value || '-'}
+            </div>
+          ) : (
+            value || '-'
+          );
         }
         return '-';
     }
   };
+
+  const renderCellContentForNewTransaction = (
+    newTransaction: EditingTransaction,
+    column: TableColumn,
+    index: number
+  ) => {
+    switch (column.key) {
+      case 'id':
+        return <span className="font-mono text-sm">{data.length + index + 1}</span>;
+      case 'title':
+      case 'description':
+        return (
+          <Input
+            value={newTransaction.description}
+            onChange={e => handleUpdateNewTransaction(index, 'description', e.target.value)}
+            placeholder="Transaction description"
+          />
+        );
+      case 'category':
+        return (
+          <CategoryDropdown
+            value={newTransaction.categoryId}
+            onChange={value => handleUpdateNewTransaction(index, 'categoryId', value)}
+            categories={categories}
+          />
+        );
+      case 'amount':
+        return (
+          <Input
+            value={newTransaction.amount}
+            onChange={e => handleUpdateNewTransaction(index, 'amount', e.target.value)}
+            placeholder="0"
+          />
+        );
+      case 'date':
+        return (
+          <DatePicker
+            value={newTransaction.date}
+            onChange={date => handleUpdateNewTransaction(index, 'date', date)}
+          />
+        );
+      case 'transactionType':
+        return (
+          <TransactionTypeDropdown
+            value={newTransaction.transactionType || 'expense'}
+            onChange={type => handleUpdateNewTransaction(index, 'transactionType', type)}
+          />
+        );
+      default:
+        return <></>;
+    }
+  };
+
+  useEffect(() => {
+    const modifiedTransactions = Object.values(editingTransactions).filter(tx => tx.isModified);
+    const allChanges = [...modifiedTransactions, ...newTransactions];
+    onChangesUpdate?.(allChanges);
+  }, [editingTransactions, newTransactions, onChangesUpdate]);
 
   if (isLoading) {
     return (
@@ -322,19 +437,12 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   {column.label}
                 </TableHead>
               ))}
-              {showActions && (
-                <TableHead className="text-right" style={{ width: '100px' }}>
-                  Actions
-                </TableHead>
-              )}
+              <TableHead className="text-right" style={{ width: '100px' }}></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell
-                colSpan={columns.length + (showActions ? 1 : 0)}
-                className="py-8 text-center"
-              >
+              <TableCell colSpan={columns.length} className="py-8 text-center">
                 <div className="flex items-center justify-center">
                   <Spinner className="mr-2" />
                   Loading transactions...
@@ -361,11 +469,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                 {column.label}
               </TableHead>
             ))}
-            {showActions && (
-              <TableHead className="text-right" style={{ width: '100px' }}>
-                Actions
-              </TableHead>
-            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -380,119 +483,33 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   {renderCellContent(transaction, column, index)}
                 </TableCell>
               ))}
-              {showActions && (
-                <TableCell className="px-4 py-2 text-right" style={{ width: '100px' }}>
-                  <div className="flex justify-end gap-2">
-                    {editingId === transaction._id ? (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={handleSave}
-                          disabled={!editingData?.description || !editingData?.amount}
-                        >
-                          <SaveIcon className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancel}>
-                          <XIcon className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        {allowEdit && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(transaction)}
-                            disabled={isAdding || editingId !== null}
-                          >
-                            <EditIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {allowDelete && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(transaction._id)}
-                            disabled={isAdding || editingId !== null}
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              )}
+              {DeleteCell(transaction._id, onDelete)}
             </TableRow>
           ))}
-          {isAdding && editingData && allowAdd && (
-            <TableRow>
+          {newTransactions.map((newTransaction, index) => (
+            <TableRow key={newTransaction.id}>
               <TableCell
-                className="text-muted-foreground p-2"
+                className={columns[0].className}
                 style={{ width: columns[0]?.width, minWidth: columns[0]?.width }}
               >
-                {_.size(data) + 1}
+                {data.length + index + 1}
               </TableCell>
               {columns.slice(1).map(column => (
                 <TableCell
                   key={column.key}
-                  className="p-2"
+                  className={column.className}
                   style={{ width: column.width, minWidth: column.width }}
                 >
-                  {column.key === 'description' || column.key === 'title' ? (
-                    <Input
-                      value={editingData.description}
-                      onChange={e =>
-                        setEditingData({ ...editingData, description: e.target.value })
-                      }
-                      placeholder="Transaction description"
-                    />
-                  ) : column.key === 'category' ? (
-                    <CategoryDropdown
-                      value={editingData.categoryId}
-                      onChange={value => setEditingData({ ...editingData, categoryId: value })}
-                    />
-                  ) : column.key === 'amount' ? (
-                    <Input
-                      value={editingData.amount}
-                      onChange={e => setEditingData({ ...editingData, amount: e.target.value })}
-                      placeholder="0"
-                    />
-                  ) : column.key === 'date' ? (
-                    <DatePicker
-                      value={editingData.date}
-                      onChange={date => setEditingData({ ...editingData, date })}
-                    />
-                  ) : column.key === 'transactionType' ? (
-                    <TransactionTypeDropdown
-                      value={editingData.transactionType || 'expense'}
-                      onChange={type => setEditingData({ ...editingData, transactionType: type })}
-                    />
-                  ) : null}
+                  {renderCellContentForNewTransaction(newTransaction, column, index)}
                 </TableCell>
               ))}
-              {showActions && (
-                <TableCell className="text-right" style={{ width: '100px' }}>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      onClick={handleSave}
-                      disabled={!editingData.description || !editingData.amount}
-                    >
-                      <SaveIcon className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleCancel}>
-                      <XIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              )}
+              {DeleteCell(newTransaction.id, onDelete)}
             </TableRow>
-          )}
-          {data.length === 0 && !isAdding && (
+          ))}
+          {data.length === 0 && newTransactions.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={columns.length + (showActions ? 1 : 0)}
+                colSpan={columns.length}
                 className="text-muted-foreground py-8 text-center"
               >
                 {emptyMessage}
@@ -502,7 +519,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
         </TableBody>
       </Table>
 
-      {allowAdd && data.length > 0 && !isAdding && !editingId && (
+      {allowAdd && !isEditing && (
         <div className="border-t p-4">
           <Button onClick={handleAddNew} variant="outline" className="w-full">
             <span className="mr-2">+</span>

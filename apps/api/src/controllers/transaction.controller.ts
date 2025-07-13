@@ -5,6 +5,19 @@ import Transaction from '../models/Transaction';
 import User from '../models/User';
 import _ from 'lodash';
 
+const validateTransactiondata = (data: any) => {
+  _.map(data, value => {
+    const { amount, description, categoryId, date, transactionType } = value;
+
+    const isParticularValid = amount && description && categoryId && date && transactionType;
+    if (!isParticularValid) {
+      return false; // Break the loop
+    }
+  });
+
+  return true;
+};
+
 // @desc    POST user transaction
 // @route   POST /api/transaction/
 // @access  Private
@@ -89,3 +102,96 @@ export const getTransactions = asyncHandler(async (req: AuthenticatedRequest, re
     });
   }
 });
+
+export const bulkCreateTransactions = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user?.id;
+    const transactionsData = req.body;
+
+    if (!Array.isArray(transactionsData) || transactionsData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid transactions data',
+      });
+    }
+    try {
+      const isValid = validateTransactiondata(transactionsData);
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Some properties are missing in the transactions data',
+        });
+      }
+
+      const transactions = transactionsData.map(tx => ({
+        ...tx,
+        userId,
+        date: new Date(tx.date),
+      }));
+
+      const createdTransactions = await Transaction.insertMany(transactions);
+      console.log({ createdTransactions });
+      res.status(201).json({
+        success: true,
+        data: createdTransactions,
+        message: 'Transactions created successfully',
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Something went wrong while creating transactions',
+      });
+    }
+  }
+);
+
+export const bulkUpdateTransactions = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user?.id;
+    const transactionsData = req.body;
+
+    if (!Array.isArray(transactionsData) || transactionsData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid transactions data',
+      });
+    }
+
+    try {
+      const isValid = validateTransactiondata(transactionsData);
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Some properties are missing in the transactions data',
+        });
+      }
+      const updatedTransactions = await Promise.all(
+        transactionsData.map(async tx => {
+          const existingTransaction = await Transaction.findOne({
+            _id: tx.id,
+            userId,
+          });
+          if (!existingTransaction) {
+            throw new Error(`Transaction with ID ${tx.id} not found`);
+          }
+          existingTransaction.description = tx.description.trim();
+          existingTransaction.amount = Number(tx.amount);
+          existingTransaction.categoryId = tx.categoryId;
+          existingTransaction.date = new Date(tx.date);
+          existingTransaction.transactionType = tx.transactionType || 'expense';
+          return existingTransaction.save();
+        })
+      );
+      res.status(200).json({
+        success: true,
+        data: updatedTransactions,
+        message: 'Transactions updated successfully',
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Something went wrong while updating transactions',
+      });
+    }
+  }
+);
