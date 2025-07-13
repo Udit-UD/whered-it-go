@@ -7,7 +7,7 @@ import { REASONS } from './utils';
 
 const ReasonCard = ({ reason }: { reason: Reason }) => {
   return (
-    <div className="group flex flex-col items-start space-y-4 rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-800/30 p-6 transition-all duration-300 hover:border-gray-600 hover:shadow-lg hover:shadow-gray-900/20">
+    <div className="group flex flex-col items-start space-y-4 rounded-xl border border-gray-800 bg-linear-to-br from-gray-900/50 to-gray-800/30 p-6 transition-all duration-300 hover:border-gray-600 hover:shadow-lg hover:shadow-gray-900/20">
       <div className="rounded-lg bg-gray-800/50 p-3 transition-colors duration-300 group-hover:bg-gray-700/50">
         {reason.icon}
       </div>
@@ -42,7 +42,7 @@ const WhyMe = () => {
         </div>
 
         {/* Bottom CTA Section */}
-        <div className="mt-16 rounded-2xl border border-gray-800 bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-blue-900/20 p-8 text-center">
+        <div className="mt-16 rounded-2xl border border-gray-800 bg-linear-to-r from-blue-900/20 via-purple-900/20 to-blue-900/20 p-8 text-center">
           <h3 className="mb-4 text-2xl font-semibold text-gray-100">
             Ready to Stop Your Money from Ghosting You?
           </h3>

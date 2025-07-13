@@ -449,7 +449,7 @@ const ExpenseLogModal: React.FC<
         </div>
       </div>
 
-      <DialogFooter className="flex !flex-col">
+      <DialogFooter className="flex flex-col!">
         <Separator />
         <div className="mt-1 flex w-full items-center justify-end gap-1">
           <Button variant="outline" onClick={onCancel} className="border-[#444]">

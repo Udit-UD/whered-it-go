@@ -250,7 +250,7 @@ function DashboardPage({
       </div>
 
       {/* Call to Action Section */}
-      <div className="from-primary/10 to-primary/5 border-primary/20 rounded-lg border bg-gradient-to-r p-6">
+      <div className="from-primary/10 to-primary/5 border-primary/20 rounded-lg border bg-linear-to-r p-6">
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
           <div>
             <h3 className="text-foreground text-lg font-semibold">Keep your streak going! 🔥</h3>

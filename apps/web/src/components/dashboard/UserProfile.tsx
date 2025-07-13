@@ -81,7 +81,7 @@ export function UserProfile({
                   className="border-primary/20 h-16 w-16 rounded-full border-2 object-cover"
                 />
               ) : (
-                <div className="from-primary/20 to-primary/40 border-primary/20 flex h-16 w-16 items-center justify-center rounded-full border-2 bg-gradient-to-br">
+                <div className="from-primary/20 to-primary/40 border-primary/20 flex h-16 w-16 items-center justify-center rounded-full border-2 bg-linear-to-br">
                   <span className="text-primary text-2xl font-semibold">
                     {name.charAt(0).toUpperCase()}
                   </span>

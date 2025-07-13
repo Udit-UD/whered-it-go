@@ -13,7 +13,7 @@ import { FEATURES } from './utils';
 
 const Card = ({ feature }: { feature: Feature }) => {
   return (
-    <div className="group relative flex h-64 w-72 flex-shrink-0 flex-col items-start space-y-4 rounded-md border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-800/30 p-6 transition-all duration-300 hover:scale-105 hover:border-gray-600 hover:shadow-lg hover:shadow-gray-900/20">
+    <div className="group relative flex h-64 w-72 shrink-0 flex-col items-start space-y-4 rounded-md border border-gray-800 bg-linear-to-br from-gray-900/50 to-gray-800/30 p-6 transition-all duration-300 hover:scale-105 hover:border-gray-600 hover:shadow-lg hover:shadow-gray-900/20">
       <div className="rounded-lg bg-gray-800/50 p-3 transition-colors duration-300 group-hover:bg-gray-700/50">
         {feature.icon}
       </div>
