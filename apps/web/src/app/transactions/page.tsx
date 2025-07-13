@@ -143,7 +143,7 @@ const TransactionPage = ({
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Transactions</h1>
-            <p className="text-sm">
+            <p className="text-muted-foreground text-sm">
               Your monthly expenses are logged here, add or update new expenses in this table
             </p>
           </div>
@@ -185,10 +185,14 @@ const TransactionPage = ({
             <DialogHeader>
               <DialogTitle>Delete Transaction</DialogTitle>
             </DialogHeader>
-            <div className="bg-destructive w-full text-sm">
+            <div className="w-full text-sm">
               Are you sure you want to delete this transaction? This action cannot be undone.
             </div>
             <DialogFooter>
+              <Button onClick={() => setModal(null)} variant={'outline'}>
+                Cancel
+              </Button>
+
               <Button
                 variant="destructive"
                 onClick={async () => {
@@ -205,7 +209,6 @@ const TransactionPage = ({
               >
                 Delete
               </Button>
-              <Button onClick={() => setModal(null)}>Cancel</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

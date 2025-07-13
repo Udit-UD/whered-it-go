@@ -29,19 +29,10 @@ const HeroSection = () => {
         />
 
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-          <Button
-            size="sm"
-            className="bg-white text-black hover:bg-white/80"
-            onClick={onExploreClick}
-          >
+          <Button size="sm" onClick={onExploreClick}>
             Let&apos;s Explore
           </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="hover:bg-gray-900"
-            onClick={onNoMoneyClick}
-          >
+          <Button size="sm" variant="ghost" onClick={onNoMoneyClick}>
             I&apos;ve No Money
           </Button>
         </div>

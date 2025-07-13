@@ -20,7 +20,6 @@ import { Check, Loader, PlusIcon } from 'lucide-react';
 import DatePickerInput from '../dashboard/DatePicker';
 import withPreloader from '@/hocs/withPreloader';
 import { ApiResponse, Transaction, Category } from '@/types';
-import { Separator } from '../ui/separator';
 
 interface ExpenseError {
   title?: string;
@@ -273,7 +272,6 @@ const ExpenseLogModal: React.FC<
       <DialogHeader>
         <DialogTitle>Log New Expense</DialogTitle>
         <DialogDescription>Add a new expense to track your spending.</DialogDescription>
-        <Separator />
       </DialogHeader>
 
       <div className="space-y-4">
@@ -332,7 +330,7 @@ const ExpenseLogModal: React.FC<
         </div>
 
         {isAddingCategory ? (
-          <div className="bg-primary/5 space-y-3 rounded-lg border border-[#444] p-4">
+          <div className="space-y-3 rounded-lg border border-[#444] bg-black/50 p-4">
             <div className="flex items-center justify-between">
               <label className="text-foreground text-sm font-medium">
                 New Category <span className="text-red-300">*</span>
@@ -355,7 +353,11 @@ const ExpenseLogModal: React.FC<
                 className="relative flex h-10 w-12 items-center justify-center rounded-lg border border-[#444] p-0 text-lg"
               >
                 {_.get(expenseDetails, 'category.icon', '🍽️')}
+
                 <EmojiPicker
+                  // @ts-expect-error I don't know why this is not typed correctly
+                  theme="dark"
+                  skinTonesDisabled={true}
                   open={isIconPickerOpen}
                   onEmojiClick={onChooseIcon}
                   style={{
@@ -364,6 +366,7 @@ const ExpenseLogModal: React.FC<
                     left: 0,
                     height: '400px',
                     width: '300px',
+                    zIndex: 1000,
                   }}
                 />
               </div>
@@ -450,8 +453,7 @@ const ExpenseLogModal: React.FC<
       </div>
 
       <DialogFooter className="flex flex-col!">
-        <Separator />
-        <div className="mt-1 flex w-full items-center justify-end gap-1">
+        <div className="mt-1 flex w-full items-center justify-end gap-2">
           <Button variant="outline" onClick={onCancel} className="border-[#444]">
             Cancel
           </Button>
