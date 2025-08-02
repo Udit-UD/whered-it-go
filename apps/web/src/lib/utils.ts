@@ -129,3 +129,14 @@ export function getRandomColor() {
   ];
   return colors[Math.floor(Math.random() * colors.length)];
 }
+
+export const getAmountColor = (transactionType: string) => {
+  switch (transactionType) {
+    case 'income':
+      return 'text-green-400';
+    case 'expense':
+      return 'text-red-400';
+    default:
+      return 'text-cyan-400';
+  }
+};

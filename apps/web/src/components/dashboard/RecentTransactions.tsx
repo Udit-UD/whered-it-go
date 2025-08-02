@@ -2,7 +2,7 @@ import _ from 'lodash';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import withPreloader from '@/hocs/withPreloader';
 import apiService from '@/lib/apiService';
-import { cn } from '@/lib/utils';
+import { cn, getAmountColor } from '@/lib/utils';
 import { ApiResponse, Transaction } from '@/types';
 import { useEffect, useState } from 'react';
 interface RecentTransactionsProps {
@@ -82,9 +82,7 @@ function RecentTransactions({
                   <p
                     className={cn(
                       'text-sm font-semibold',
-                      transaction.transactionType === 'expense'
-                        ? 'text-destructive'
-                        : 'text-green-500'
+                      getAmountColor(transaction.transactionType)
                     )}
                   >
                     {transaction.transactionType === 'expense' ? '-' : '+'}

@@ -81,6 +81,7 @@ const TransactionPage = ({
   const [modal, setModal] = useState<string | null>(null);
   const [isStateLoading, setIsStateLoading] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('date-desc');
+  const currentMonth = new Date().getMonth() + 1;
 
   useEffect(() => {
     if (!isLoading) {
@@ -179,7 +180,7 @@ const TransactionPage = ({
     if (!modal) return;
     setIsStateLoading(true);
     try {
-      const response = await apiService.delete(`/transactions/${modal}`);
+      const response = await apiService.delete(`/transactions/${modal}?month=${currentMonth}`);
       if (response.success) {
         toast.success('Transaction deleted successfully');
         setModal(null);

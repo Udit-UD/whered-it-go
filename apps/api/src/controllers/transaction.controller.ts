@@ -68,43 +68,56 @@ export const addTransaction = asyncHandler(async (req: AuthenticatedRequest, res
 // @access  Private
 export const getTransactions = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
-  const limit = parseInt(req.query.limit as string) || 20;
-  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 20;
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const month = parseInt(req.query.month as string, 10) || new Date().getMonth() + 1;
   const sort = req.query.sort as SortOption;
 
   try {
-    const transactions = await Transaction.find({ userId })
+    // Build sort object safely
+    let sortOption: Record<string, 1 | -1> = {};
+    switch (sort) {
+      case 'date-desc':
+        sortOption = { date: -1 };
+        break;
+      case 'date-asc':
+        sortOption = { date: 1 };
+        break;
+      case 'amount-desc':
+        sortOption = { amount: -1 };
+        break;
+      case 'amount-asc':
+        sortOption = { amount: 1 };
+        break;
+    }
+
+    const transactions = await Transaction.find({
+      userId,
+      date: {
+        $gte: new Date(new Date().getFullYear(), month - 1, 1),
+        $lt: new Date(new Date().getFullYear(), month, 1),
+      },
+    })
       .populate('categoryId')
-      .sort(
-        (sort === 'date-desc' && { date: -1 }) ||
-          (sort === 'date-asc' && { date: 1 }) ||
-          (sort === 'amount-desc' && { amount: -1 }) ||
-          (sort === 'amount-asc' && { amount: 1 }) ||
-          {}
-      )
+      .sort(sortOption)
       .skip((page - 1) * limit)
       .limit(limit);
 
-    if (!transactions.length) {
-      return res.status(200).json({
-        success: false,
-        data: [],
-        message: 'No transactions found',
-      });
-    }
-
-    const updatedTransactions = _.map(transactions, transaction => ({
+    const updatedTransactions = transactions.map(transaction => ({
       ...transaction.toObject(),
       category: transaction.categoryId,
     }));
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: updatedTransactions,
-      message: 'Recent transactions retrieved successfully',
+      message:
+        updatedTransactions.length > 0
+          ? 'Recent transactions retrieved successfully'
+          : 'No transactions found',
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       data: [],
       message: error.message || 'Something went wrong while retrieving recent transactions',

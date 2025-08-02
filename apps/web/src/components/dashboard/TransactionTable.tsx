@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
-import { cn, generateRandomId } from '@/lib/utils';
+import { cn, generateRandomId, getAmountColor } from '@/lib/utils';
 import { Transaction, Category, TransactionType } from '@/types';
 import { TRANSACTION_TYPES, USER_CURRENCY } from '@/constants';
 import { MdDelete } from 'react-icons/md';
@@ -317,12 +317,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             className={isEditing ? 'cursor-pointer rounded p-2 hover:bg-gray-100' : ''}
             onClick={() => isEditing && handleEdit(transaction)}
           >
-            <span
-              className={cn(
-                'font-semibold',
-                transaction.transactionType === 'income' ? 'text-green-600' : 'text-red-300'
-              )}
-            >
+            <span className={cn('font-semibold', getAmountColor(transaction.transactionType))}>
               {USER_CURRENCY} {Math.abs(transaction.amount).toFixed(2)}
             </span>
           </div>
