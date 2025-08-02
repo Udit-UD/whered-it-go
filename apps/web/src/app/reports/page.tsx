@@ -240,7 +240,6 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
-      <Footer />
     </div>
   );
 }

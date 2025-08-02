@@ -12,6 +12,8 @@ import {
 import { ChevronLeft, Check } from 'lucide-react';
 import BudgetStepOne from './BudgetStepOne';
 import BudgetStepTwo from './BudgetStepTwo';
+import { BudgetCategoryInput } from './types';
+import { Category } from '@/types';
 
 interface BudgetCreationModalProps {
   isOpen: boolean;
@@ -19,14 +21,9 @@ interface BudgetCreationModalProps {
   onBudgetCreated: (budget: {
     totalAmount: number;
     note?: string;
-    allocations: CategoryAllocation[];
+    allocations: BudgetCategoryInput[];
   }) => void;
-  categories: Array<{
-    id: string;
-    name: string;
-    color: string;
-    icon: string;
-  }>;
+  categories: Category[];
 }
 
 export interface CategoryAllocation {
@@ -34,13 +31,14 @@ export interface CategoryAllocation {
   categoryName: string;
   categoryColor: string;
   categoryIcon: string;
-  allocated: number;
+  allocatedAmount: number;
+  note?: string;
 }
 
 interface BudgetFormData {
   totalAmount: number;
   note: string;
-  allocations: CategoryAllocation[];
+  allocations: BudgetCategoryInput[];
 }
 
 export default function BudgetCreationModal({
@@ -64,7 +62,7 @@ export default function BudgetCreationModal({
     setCurrentStep(2);
   };
 
-  const handleStepTwoComplete = (allocations: CategoryAllocation[]) => {
+  const handleStepTwoComplete = (allocations: BudgetCategoryInput[]) => {
     const finalData = {
       ...formData,
       allocations,
@@ -91,7 +89,9 @@ export default function BudgetCreationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={currentStep === 1 ? 'max-w-2xl' : 'w-4/5 max-w-full'}>
+      <DialogContent
+        className={currentStep === 1 ? 'sm:max-w-2xl' : 'w-auto min-w-[672px] sm:max-w-[90vw]'}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {currentStep === 2 && (

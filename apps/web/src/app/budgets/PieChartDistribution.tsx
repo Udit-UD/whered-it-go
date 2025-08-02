@@ -7,7 +7,7 @@ const PieChartDistribution = ({
   pieChartData,
   CustomTooltip,
 }: {
-  pieChartData: { name: string; value: number; color: string; icon: React.ReactNode }[];
+  pieChartData: { name: string; value: number; color: string; icon: string }[];
   CustomTooltip: React.ComponentType<{ active?: boolean; payload?: any[]; label?: string }>;
 }) => {
   return (

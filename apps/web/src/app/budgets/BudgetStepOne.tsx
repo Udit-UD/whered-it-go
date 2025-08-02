@@ -25,16 +25,13 @@ export default function BudgetStepOne({ onNext, onCancel, initialData }: BudgetS
     <div className="space-y-6">
       <div>
         <label className="text-foreground mb-2 block text-sm font-medium">
-          Total Monthly Budget *
+          Total Monthly Budget*
         </label>
         <Input
-          type="number"
           value={totalAmount || ''}
           onChange={e => setTotalAmount(Number(e.target.value))}
           placeholder="Enter your total monthly budget"
           className="text-base"
-          min="0"
-          step="100"
         />
         <p className="text-muted-foreground mt-1 text-xs">
           This is the total amount you plan to spend this month

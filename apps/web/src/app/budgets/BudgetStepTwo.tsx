@@ -4,20 +4,28 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, Trash2 } from 'lucide-react';
-import { CategoryAllocation } from './BudgetCreationModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { BudgetCategoryInput } from './types';
+import { Category } from '@/types';
 
 interface BudgetStepTwoProps {
   totalAmount: number;
-  categories: Array<{
-    id: string;
-    name: string;
-    color: string;
-    icon: string;
-  }>;
-  onComplete: (allocations: CategoryAllocation[]) => void;
+  categories: Category[];
+  onComplete: (allocations: BudgetCategoryInput[]) => void;
   onBack: () => void;
-  initialAllocations: CategoryAllocation[];
+  initialAllocations: BudgetCategoryInput[];
 }
+
+const initialInputState: BudgetCategoryInput = {
+  categoryId: '',
+  allocatedAmount: 0,
+  note: '',
+};
 
 export default function BudgetStepTwo({
   totalAmount,
@@ -26,30 +34,30 @@ export default function BudgetStepTwo({
   onBack,
   initialAllocations,
 }: BudgetStepTwoProps) {
-  const [allocations, setAllocations] = useState<CategoryAllocation[]>(initialAllocations);
-  const [selectedCategoryId, setSelectedCategoryId] = useState('');
-  const [allocationAmount, setAllocationAmount] = useState(0);
+  const [allocations, setAllocations] = useState<BudgetCategoryInput[]>(initialAllocations);
+  const [selectedCategory, setSelectedCategory] = useState<BudgetCategoryInput>(initialInputState);
 
-  const totalAllocated = allocations.reduce((sum, allocation) => sum + allocation.allocated, 0);
+  const allocationsAdded = allocations.length > 0;
+  const totalAllocated = allocations.reduce(
+    (sum, allocation) => sum + allocation.allocatedAmount,
+    0
+  );
   const remainingAmount = totalAmount - totalAllocated;
 
   const handleAddAllocation = () => {
-    if (selectedCategoryId && allocationAmount > 0) {
-      const category = categories.find(cat => cat.id === selectedCategoryId);
-      if (category) {
-        const newAllocation: CategoryAllocation = {
-          categoryId: category.id,
-          categoryName: category.name,
-          categoryColor: category.color,
-          categoryIcon: category.icon,
-          allocated: allocationAmount,
-        };
+    if (!selectedCategory.categoryId || selectedCategory.allocatedAmount <= 0) return;
 
-        setAllocations(prev => [...prev, newAllocation]);
-        setSelectedCategoryId('');
-        setAllocationAmount(0);
-      }
-    }
+    const category = categories.find(cat => cat._id === selectedCategory.categoryId);
+    if (!category) return;
+
+    const newAllocation: BudgetCategoryInput = {
+      categoryId: category._id,
+      allocatedAmount: selectedCategory.allocatedAmount,
+      note: selectedCategory.note || '',
+    };
+
+    setAllocations(prev => [...prev, newAllocation]);
+    setSelectedCategory(initialInputState);
   };
 
   const handleRemoveAllocation = (categoryId: string) => {
@@ -59,134 +67,187 @@ export default function BudgetStepTwo({
   const handleUpdateAllocation = (categoryId: string, newAmount: number) => {
     setAllocations(prev =>
       prev.map(allocation =>
-        allocation.categoryId === categoryId ? { ...allocation, allocated: newAmount } : allocation
+        allocation.categoryId === categoryId
+          ? { ...allocation, allocatedAmount: newAmount }
+          : allocation
       )
     );
   };
 
   const availableCategories = categories.filter(
-    category => !allocations.some(allocation => allocation.categoryId === category.id)
+    category => !allocations.some(allocation => allocation.categoryId === category._id)
   );
 
   const handleComplete = () => {
     onComplete(allocations);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Budget Summary */}
-      <div className="bg-muted/50 rounded-lg p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium">Total Budget:</span>
-          <span className="font-semibold">Rs. {totalAmount.toLocaleString()}</span>
-        </div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium">Allocated:</span>
-          <span className="font-semibold">Rs. {totalAllocated.toLocaleString()}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Remaining:</span>
-          <span
-            className={`font-semibold ${remainingAmount < 0 ? 'text-red-500' : 'text-green-600'}`}
-          >
-            Rs. {remainingAmount.toLocaleString()}
-          </span>
-        </div>
-      </div>
+  const updateSelectedCategory = (key: keyof BudgetCategoryInput, value: string | number) => {
+    setSelectedCategory(prev => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
 
-      {/* Add New Allocation */}
-      {availableCategories.length > 0 && (
-        <div className="space-y-4 rounded-lg border p-4">
-          <h3 className="font-medium">Add Category Allocation</h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div>
-              <label className="text-foreground mb-1 block text-sm font-medium">Category</label>
-              <select
-                value={selectedCategoryId}
-                onChange={e => setSelectedCategoryId(e.target.value)}
-                className="border-input bg-background text-foreground w-full rounded-md border p-2"
-              >
-                <option value="">Select category</option>
-                {availableCategories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.icon} {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-foreground mb-1 block text-sm font-medium">Amount</label>
-              <Input
-                type="number"
-                value={allocationAmount || ''}
-                onChange={e => setAllocationAmount(Number(e.target.value))}
-                placeholder="0"
-                min="0"
-                max={remainingAmount > 0 ? remainingAmount : undefined}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                onClick={handleAddAllocation}
-                disabled={
-                  !selectedCategoryId || allocationAmount <= 0 || allocationAmount > remainingAmount
-                }
-                className="w-full"
-              >
-                Add
-              </Button>
+  // Helper function to get category details by ID
+  const getCategoryById = (categoryId: string) => {
+    return categories.find(cat => cat._id === categoryId);
+  };
+
+  return (
+    <div className="space-y-6" style={allocationsAdded ? { width: '75vw' } : {}}>
+      {/* Main Content Layout */}
+      <div className={`flex gap-6 ${allocationsAdded ? 'flex-row' : 'flex-col'}`}>
+        {/* Left Side - Budget Summary and Add Allocation */}
+        <div className={`space-y-4 ${allocationsAdded ? 'flex-1' : 'w-full'}`}>
+          {/* Budget Summary */}
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total Budget:</span>
+                <span className="font-semibold">Rs. {totalAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Allocated:</span>
+                <span className="font-semibold">Rs. {totalAllocated.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Remaining:</span>
+                <span
+                  className={`font-semibold ${remainingAmount < 0 ? 'text-red-500' : 'text-green-600'}`}
+                >
+                  Rs. {remainingAmount.toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Current Allocations */}
-      {allocations.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="font-medium">Current Allocations</h3>
-          {allocations.map(allocation => (
-            <div
-              key={allocation.categoryId}
-              className="flex items-center justify-between rounded-lg border p-3"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-lg">{allocation.categoryIcon}</span>
+          {/* Add New Allocation */}
+          {availableCategories.length > 0 && (
+            <div className="space-y-4 rounded-lg border p-4">
+              <h3 className="font-medium">Add Category Allocation</h3>
+
+              <div className="space-y-3">
+                {/* Category Selection */}
                 <div>
-                  <p className="font-medium">{allocation.categoryName}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {((allocation.allocated / totalAmount) * 100).toFixed(1)}% of budget
-                  </p>
+                  <label className="mb-1 block text-sm font-medium">Category</label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {selectedCategory.categoryId
+                          ? (() => {
+                              const cat = getCategoryById(selectedCategory.categoryId);
+                              return (
+                                <span className="flex items-center gap-2">
+                                  <span>{cat?.icon}</span>
+                                  <span>{cat?.name}</span>
+                                </span>
+                              );
+                            })()
+                          : 'Select category'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-full">
+                      {availableCategories.map(category => (
+                        <DropdownMenuItem
+                          key={category._id}
+                          onClick={() => updateSelectedCategory('categoryId', category._id)}
+                          className="flex items-center gap-2"
+                        >
+                          <span>{category.icon}</span>
+                          <span>{category.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Amount Input and Add Button */}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-sm font-medium">Amount</label>
+                    <Input
+                      value={selectedCategory.allocatedAmount || ''}
+                      onChange={e =>
+                        updateSelectedCategory('allocatedAmount', Number(e.target.value))
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      onClick={handleAddAllocation}
+                      disabled={
+                        !selectedCategory.categoryId ||
+                        selectedCategory.allocatedAmount <= 0 ||
+                        selectedCategory.allocatedAmount > remainingAmount
+                      }
+                    >
+                      Add
+                    </Button>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={allocation.allocated}
-                  onChange={e =>
-                    handleUpdateAllocation(allocation.categoryId, Number(e.target.value))
-                  }
-                  className="w-32"
-                  min="0"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveAllocation(allocation.categoryId)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
+
+        {/* Right Side - Current Allocations */}
+        {allocationsAdded && (
+          <div className="flex-1 space-y-3">
+            <h3 className="font-medium">Current Allocations</h3>
+            <div className="max-h-96 space-y-3 overflow-y-auto">
+              {allocations.map(allocation => {
+                const category = getCategoryById(allocation.categoryId);
+                return (
+                  <div
+                    key={allocation.categoryId}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{category?.icon}</span>
+                      <div>
+                        <p className="font-medium">{category?.name}</p>
+                        <p className="text-muted-foreground text-sm">
+                          {((allocation.allocatedAmount / totalAmount) * 100).toFixed(1)}% of budget
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={allocation.allocatedAmount}
+                        onChange={e =>
+                          handleUpdateAllocation(allocation.categoryId, Number(e.target.value))
+                        }
+                        className="w-24"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveAllocation(allocation.categoryId)}
+                        className="shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex gap-3 border-t pt-4">
         <Button variant="outline" onClick={onBack} className="flex-1">
           Back
         </Button>
-        <Button onClick={handleComplete} className="flex flex-1 items-center justify-center gap-2">
+        <Button
+          onClick={handleComplete}
+          className="flex flex-1 items-center justify-center gap-2"
+          disabled={allocations.length === 0}
+        >
           <Check className="h-4 w-4" />
           Create Budget
         </Button>

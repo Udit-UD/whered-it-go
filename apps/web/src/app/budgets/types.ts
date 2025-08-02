@@ -1,3 +1,5 @@
+import { Category } from '@/types';
+
 export interface BudgetAllocationCardProps {
   title: string;
   value: string;
@@ -5,13 +7,19 @@ export interface BudgetAllocationCardProps {
   subtitle: string;
 }
 
-export interface BudgetAllocation {
-  id: string;
+export interface BudgetCategoryInput {
   categoryId: string;
-  categoryName: string;
-  categoryColor: string;
-  categoryIcon: string;
-  allocated: number;
+  allocatedAmount: number;
+  note?: string;
+}
+
+export interface BudgetCategory extends Category {
+  allocatedAmount: number;
   spent: number;
-  period: 'monthly' | 'quarterly' | 'yearly';
+}
+
+export interface BudgetOverview {
+  budgetId: string;
+  totalAmount: number;
+  allocatedCategories: BudgetCategory[];
 }

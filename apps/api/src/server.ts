@@ -15,6 +15,7 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import transactionRoutes from './routes/transactionRoutes';
+import budgetRoutes from './routes/budgetRoutes';
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/budget', budgetRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

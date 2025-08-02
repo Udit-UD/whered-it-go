@@ -5,143 +5,118 @@ import { Plus, Target, PieChart as PieChartIcon, IndianRupee } from 'lucide-reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import BudgetAllocationCard from './BudgetAllocationCard';
-import { BudgetAllocation } from './types';
+import { BudgetCategory, BudgetOverview } from './types';
 import BarTile from './BarTile';
 import PieChartDistribution from './PieChartDistribution';
-import BudgetCreationModal, { CategoryAllocation } from './BudgetCreationModal';
+import BudgetCreationModal from './BudgetCreationModal';
+import apiService from '@/lib/apiService';
+import { toast } from 'sonner';
+import _ from 'lodash';
+import withPreloader from '@/hocs/withPreloader';
+import { ApiResponse, Category } from '@/types';
+import { getRandomColor } from '@/lib/utils';
 
-// Mock data - replace with actual API calls
-const mockCategories = [
-  { id: '1', name: 'Food & Dining', color: '#ff6b6b', icon: '🍽️' },
-  { id: '2', name: 'Transportation', color: '#4ecdc4', icon: '🚗' },
-  { id: '3', name: 'Shopping', color: '#45b7d1', icon: '🛍️' },
-  { id: '4', name: 'Entertainment', color: '#96ceb4', icon: '🎬' },
-  { id: '5', name: 'Bills & Utilities', color: '#ffeaa7', icon: '⚡' },
-  { id: '6', name: 'Healthcare', color: '#fd79a8', icon: '🏥' },
-  { id: '7', name: 'Education', color: '#6c5ce7', icon: '📚' },
-  { id: '8', name: 'Savings', color: '#00b894', icon: '💰' },
-];
+type CreateBudgetResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    budgetId: string;
+    budgetCategories: [any];
+  };
+};
 
-export default function BudgetPage() {
-  const [budgetAllocations, setBudgetAllocations] = useState<BudgetAllocation[]>([]);
+type UserBudgetOverviewResponse = ApiResponse<BudgetOverview>;
+type CategoriesResponse = ApiResponse<Category[]>;
+
+function BudgetPage({
+  preloadedData,
+  isLoading,
+}: {
+  preloadedData?: Record<string, unknown>;
+  isLoading: boolean;
+}) {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingBudget, setEditingBudget] = useState<BudgetAllocation | null>(null);
+  const [editingBudget, setEditingBudget] = useState<BudgetCategory | null>(null);
 
   // Budget configuration states
-  const [isBudgetConfigured, setIsBudgetConfigured] = useState(false); // Will be replaced with API call
-  const [totalBudget, setTotalBudget] = useState(0);
-  const [budgetNote, setBudgetNote] = useState('');
+  const [budgetOverview, setBudgetOverview] = useState<BudgetOverview | null>(null);
   const [isCreateBudgetModalOpen, setIsCreateBudgetModalOpen] = useState(false);
 
-  // Mock initial data
   useEffect(() => {
-    // TODO: Replace with API call to check if budget exists for current month
-    const mockBudgetExists = false; // Change this to true to simulate existing budget
+    if (!isLoading) {
+      const userBudgetOverviewResponse =
+        preloadedData?.budgetOverview as UserBudgetOverviewResponse;
+      const categoriesResponse = preloadedData?.categories as CategoriesResponse;
+      console.log({ userBudgetOverviewResponse });
+      const categoriesList = _.get(categoriesResponse, 'data', []);
+      const userBudgetData = _.get(userBudgetOverviewResponse, 'data', null);
 
-    if (mockBudgetExists) {
-      setIsBudgetConfigured(true);
-      setTotalBudget(80000);
-      setBudgetNote('Monthly budget for essential expenses');
-
-      const mockBudgetsInINR: BudgetAllocation[] = [
-        {
-          id: '1',
-          categoryId: '1',
-          categoryName: 'Food & Dining',
-          categoryColor: '#ff6b6b',
-          categoryIcon: '🍽️',
-          allocated: 25000,
-          spent: 22000,
-          period: 'monthly',
-        },
-        {
-          id: '2',
-          categoryId: '2',
-          categoryName: 'Transportation',
-          categoryColor: '#4ecdc4',
-          categoryIcon: '🚗',
-          allocated: 10000,
-          spent: 9500,
-          period: 'monthly',
-        },
-        {
-          id: '3',
-          categoryId: '3',
-          categoryName: 'Shopping',
-          categoryColor: '#45b7d1',
-          categoryIcon: '🛍️',
-          allocated: 15000,
-          spent: 15500, // slight overspend
-          period: 'monthly',
-        },
-        {
-          id: '4',
-          categoryId: '4',
-          categoryName: 'Entertainment',
-          categoryColor: '#96ceb4',
-          categoryIcon: '🎬',
-          allocated: 8000,
-          spent: 6000,
-          period: 'monthly',
-        },
-        {
-          id: '5',
-          categoryId: '5',
-          categoryName: 'Bills & Utilities',
-          categoryColor: '#ffeaa7',
-          categoryIcon: '⚡',
-          allocated: 22000,
-          spent: 22500, // slight overspend
-          period: 'monthly',
-        },
-      ];
-
-      setBudgetAllocations(mockBudgetsInINR);
-    } else {
-      setIsBudgetConfigured(false);
-      setTotalBudget(0);
-      setBudgetNote('');
-      setBudgetAllocations([]);
+      setCategories(categoriesList);
+      setBudgetOverview(userBudgetData);
     }
-  }, []);
+  }, [isLoading, preloadedData]);
 
-  const handleBudgetCreated = (budgetData: {
-    totalAmount: number;
-    note?: string;
-    allocations: CategoryAllocation[];
-  }) => {
-    // TODO: Replace with API call to create budget
-    setTotalBudget(budgetData.totalAmount);
-    setBudgetNote(budgetData.note || '');
-    setIsBudgetConfigured(true);
-
-    // Convert CategoryAllocation to BudgetAllocation
-    const newBudgetAllocations: BudgetAllocation[] = budgetData.allocations.map(allocation => ({
-      id: Date.now().toString() + allocation.categoryId,
-      categoryId: allocation.categoryId,
-      categoryName: allocation.categoryName,
-      categoryColor: allocation.categoryColor,
-      categoryIcon: allocation.categoryIcon,
-      allocated: allocation.allocated,
-      spent: 0, // Initial spent amount
-      period: 'monthly' as const,
-    }));
-
-    setBudgetAllocations(newBudgetAllocations);
+  const createBudget = async (params: any) => {
+    try {
+      const response = await apiService.post<CreateBudgetResponse>(
+        '/budget/create-budget-with-categories',
+        params
+      );
+      if (response.success) {
+        toast.success('Budget created successfully!');
+        return true;
+      }
+    } catch (error) {
+      toast.error('Failed to create budget');
+      console.error('Failed to create budget:', error);
+    }
   };
 
-  const totalAllocated = budgetAllocations.reduce((sum, budget) => sum + budget.allocated, 0);
-  const totalSpent = budgetAllocations.reduce((sum, budget) => sum + budget.spent, 0);
-  const remainingBudget = totalBudget - totalAllocated;
+  const handleBudgetCreated = async (budgetData: {
+    totalAmount: number;
+    note?: string;
+    allocations: { categoryId: string; allocatedAmount: number; note?: string }[];
+  }) => {
+    const input = {
+      totalAmount: budgetData.totalAmount,
+      note: budgetData.note,
+      allocations: _.map(budgetData.allocations, allocation => ({
+        categoryId: allocation.categoryId,
+        allocatedAmount: allocation.allocatedAmount,
+        note: '',
+      })),
+    };
 
-  const pieChartData = budgetAllocations.map(budget => ({
-    name: budget.categoryName,
-    value: budget.allocated,
-    color: budget.categoryColor,
-    icon: budget.categoryIcon,
+    const budget = await createBudget(input);
+    if (budget) {
+      // TODO: refetch budget query
+      setIsCreateBudgetModalOpen(false);
+    }
+  };
+
+  const totalAllocated = _.reduce(
+    budgetOverview?.allocatedCategories,
+    (sum, category) => sum + category.allocatedAmount,
+    0
+  );
+
+  const totalSpent = _.reduce(
+    budgetOverview?.allocatedCategories,
+    (sum, category) => sum + category.spent,
+    0
+  );
+
+  const remainingBudget = _.get(budgetOverview, 'totalAmount', 0) - totalAllocated;
+
+  const pieChartData = _.map(budgetOverview?.allocatedCategories, category => ({
+    name: category.name,
+    value: category.allocatedAmount,
+    color: getRandomColor(),
+    icon: category.icon,
   }));
 
-  const handleEditBudget = (budget: BudgetAllocation) => {
+  const handleEditBudget = (budget: BudgetCategory) => {
     setEditingBudget(budget);
     setIsAddModalOpen(true);
   };
@@ -149,10 +124,6 @@ export default function BudgetPage() {
   const getCurrentMonth = () => {
     const date = new Date();
     return date.toLocaleString('default', { month: 'long' });
-  };
-
-  const handleDeleteBudget = (budgetId: string) => {
-    setBudgetAllocations(prev => prev.filter(budget => budget.id !== budgetId));
   };
 
   interface TooltipProps {
@@ -197,7 +168,7 @@ export default function BudgetPage() {
       </div>
 
       {/* Conditional content based on budget configuration */}
-      {!isBudgetConfigured ? (
+      {!_.get(budgetOverview, 'budgetId', null) ? (
         // Budget not configured view
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="space-y-6 text-center">
@@ -226,14 +197,14 @@ export default function BudgetPage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
             <BudgetAllocationCard
               title={'Total Budget'}
-              value={`Rs. ${totalBudget.toLocaleString()}`}
+              value={`Rs. ${_.get(budgetOverview, 'totalAmount', 0).toLocaleString()}`}
               subtitle="Monthly budget limit"
               icon={<IndianRupee className="text-muted-foreground h-4 w-4" />}
             />
             <BudgetAllocationCard
               title={'Allocated'}
-              value={totalAllocated.toLocaleString()}
-              subtitle={`${((totalAllocated / totalBudget) * 100).toFixed(1)}% of total budget`}
+              value={`Rs. ${totalAllocated.toLocaleString()}`}
+              subtitle={`${((totalAllocated / _.get(budgetOverview, 'totalBudget', 0)) * 100).toFixed(1)}% of total budget`}
               icon={<Target className="text-muted-foreground h-4 w-4" />}
             />
             <BudgetAllocationCard
@@ -261,18 +232,17 @@ export default function BudgetPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {budgetAllocations.map(budget => {
+                  {budgetOverview?.allocatedCategories.map(category => {
                     return (
                       <BarTile
-                        key={budget.id}
-                        budget={budget}
-                        handleDeleteBudget={handleDeleteBudget}
+                        key={category._id}
+                        category={category}
                         handleEditBudget={handleEditBudget}
                       />
                     );
                   })}
 
-                  {budgetAllocations.length === 0 && (
+                  {budgetOverview?.allocatedCategories.length === 0 && (
                     <div className="py-8 text-center">
                       <PieChartIcon className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
                       <h3 className="text-foreground mb-2 text-lg font-medium">
@@ -292,7 +262,9 @@ export default function BudgetPage() {
             </Card>
 
             {/* Pie Chart */}
-            <PieChartDistribution pieChartData={pieChartData} CustomTooltip={CustomTooltip} />
+            {budgetOverview ? (
+              <PieChartDistribution pieChartData={pieChartData} CustomTooltip={CustomTooltip} />
+            ) : null}
           </div>
         </>
       )}
@@ -302,8 +274,23 @@ export default function BudgetPage() {
         isOpen={isCreateBudgetModalOpen}
         onClose={() => setIsCreateBudgetModalOpen(false)}
         onBudgetCreated={handleBudgetCreated}
-        categories={mockCategories}
+        categories={categories}
       />
     </div>
   );
 }
+
+const config = {
+  apiCalls: [
+    {
+      key: 'budgetOverview',
+      fn: () => apiService.get<UserBudgetOverviewResponse>('/budget'),
+    },
+    {
+      key: 'categories',
+      fn: () => apiService.get<CategoriesResponse>('/categories'),
+    },
+  ],
+};
+
+export default withPreloader(BudgetPage, config);
