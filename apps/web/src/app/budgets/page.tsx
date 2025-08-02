@@ -4,19 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Target, PieChart as PieChartIcon, IndianRupee } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import BudgetAllocationCard from './BudgetAllocationCard';
 import { BudgetAllocation } from './types';
 import BarTile from './BarTile';
 import PieChartDistribution from './PieChartDistribution';
+import BudgetCreationModal, { CategoryAllocation } from './BudgetCreationModal';
 
 // Mock data - replace with actual API calls
 const mockCategories = [
@@ -34,74 +26,109 @@ export default function BudgetPage() {
   const [budgetAllocations, setBudgetAllocations] = useState<BudgetAllocation[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetAllocation | null>(null);
-  const [formData, setFormData] = useState<{
-    categoryId: string;
-    allocated: number;
-    period: 'monthly' | 'quarterly' | 'yearly';
-  }>({
-    categoryId: '',
-    allocated: 0,
-    period: 'monthly',
-  });
-  const totalBudget = 80000;
+
+  // Budget configuration states
+  const [isBudgetConfigured, setIsBudgetConfigured] = useState(false); // Will be replaced with API call
+  const [totalBudget, setTotalBudget] = useState(0);
+  const [budgetNote, setBudgetNote] = useState('');
+  const [isCreateBudgetModalOpen, setIsCreateBudgetModalOpen] = useState(false);
 
   // Mock initial data
   useEffect(() => {
-    const mockBudgetsInINR: BudgetAllocation[] = [
-      {
-        id: '1',
-        categoryId: '1',
-        categoryName: 'Food & Dining',
-        categoryColor: '#ff6b6b',
-        categoryIcon: '🍽️',
-        allocated: 25000,
-        spent: 22000,
-        period: 'monthly',
-      },
-      {
-        id: '2',
-        categoryId: '2',
-        categoryName: 'Transportation',
-        categoryColor: '#4ecdc4',
-        categoryIcon: '🚗',
-        allocated: 10000,
-        spent: 9500,
-        period: 'monthly',
-      },
-      {
-        id: '3',
-        categoryId: '3',
-        categoryName: 'Shopping',
-        categoryColor: '#45b7d1',
-        categoryIcon: '🛍️',
-        allocated: 15000,
-        spent: 15500, // slight overspend
-        period: 'monthly',
-      },
-      {
-        id: '4',
-        categoryId: '4',
-        categoryName: 'Entertainment',
-        categoryColor: '#96ceb4',
-        categoryIcon: '🎬',
-        allocated: 8000,
-        spent: 6000,
-        period: 'monthly',
-      },
-      {
-        id: '5',
-        categoryId: '5',
-        categoryName: 'Bills & Utilities',
-        categoryColor: '#ffeaa7',
-        categoryIcon: '⚡',
-        allocated: 22000,
-        spent: 22500, // slight overspend
-        period: 'monthly',
-      },
-    ];
+    // TODO: Replace with API call to check if budget exists for current month
+    const mockBudgetExists = false; // Change this to true to simulate existing budget
 
-    setBudgetAllocations(mockBudgetsInINR);
+    if (mockBudgetExists) {
+      setIsBudgetConfigured(true);
+      setTotalBudget(80000);
+      setBudgetNote('Monthly budget for essential expenses');
+
+      const mockBudgetsInINR: BudgetAllocation[] = [
+        {
+          id: '1',
+          categoryId: '1',
+          categoryName: 'Food & Dining',
+          categoryColor: '#ff6b6b',
+          categoryIcon: '🍽️',
+          allocated: 25000,
+          spent: 22000,
+          period: 'monthly',
+        },
+        {
+          id: '2',
+          categoryId: '2',
+          categoryName: 'Transportation',
+          categoryColor: '#4ecdc4',
+          categoryIcon: '🚗',
+          allocated: 10000,
+          spent: 9500,
+          period: 'monthly',
+        },
+        {
+          id: '3',
+          categoryId: '3',
+          categoryName: 'Shopping',
+          categoryColor: '#45b7d1',
+          categoryIcon: '🛍️',
+          allocated: 15000,
+          spent: 15500, // slight overspend
+          period: 'monthly',
+        },
+        {
+          id: '4',
+          categoryId: '4',
+          categoryName: 'Entertainment',
+          categoryColor: '#96ceb4',
+          categoryIcon: '🎬',
+          allocated: 8000,
+          spent: 6000,
+          period: 'monthly',
+        },
+        {
+          id: '5',
+          categoryId: '5',
+          categoryName: 'Bills & Utilities',
+          categoryColor: '#ffeaa7',
+          categoryIcon: '⚡',
+          allocated: 22000,
+          spent: 22500, // slight overspend
+          period: 'monthly',
+        },
+      ];
+
+      setBudgetAllocations(mockBudgetsInINR);
+    } else {
+      setIsBudgetConfigured(false);
+      setTotalBudget(0);
+      setBudgetNote('');
+      setBudgetAllocations([]);
+    }
   }, []);
+
+  const handleBudgetCreated = (budgetData: {
+    totalAmount: number;
+    note?: string;
+    allocations: CategoryAllocation[];
+  }) => {
+    // TODO: Replace with API call to create budget
+    setTotalBudget(budgetData.totalAmount);
+    setBudgetNote(budgetData.note || '');
+    setIsBudgetConfigured(true);
+
+    // Convert CategoryAllocation to BudgetAllocation
+    const newBudgetAllocations: BudgetAllocation[] = budgetData.allocations.map(allocation => ({
+      id: Date.now().toString() + allocation.categoryId,
+      categoryId: allocation.categoryId,
+      categoryName: allocation.categoryName,
+      categoryColor: allocation.categoryColor,
+      categoryIcon: allocation.categoryIcon,
+      allocated: allocation.allocated,
+      spent: 0, // Initial spent amount
+      period: 'monthly' as const,
+    }));
+
+    setBudgetAllocations(newBudgetAllocations);
+  };
 
   const totalAllocated = budgetAllocations.reduce((sum, budget) => sum + budget.allocated, 0);
   const totalSpent = budgetAllocations.reduce((sum, budget) => sum + budget.spent, 0);
@@ -114,50 +141,14 @@ export default function BudgetPage() {
     icon: budget.categoryIcon,
   }));
 
-  const handleAddBudget = () => {
-    if (formData.categoryId && formData.allocated > 0) {
-      const selectedCategory = mockCategories.find(cat => cat.id === formData.categoryId);
-      if (selectedCategory) {
-        const newBudget: BudgetAllocation = {
-          id: Date.now().toString(),
-          categoryId: formData.categoryId,
-          categoryName: selectedCategory.name,
-          categoryColor: selectedCategory.color,
-          categoryIcon: selectedCategory.icon,
-          allocated: formData.allocated,
-          spent: 0,
-          period: formData.period,
-        };
-        setBudgetAllocations([...budgetAllocations, newBudget]);
-        setFormData({ categoryId: '', allocated: 0, period: 'monthly' });
-        setIsAddModalOpen(false);
-      }
-    }
-  };
-
   const handleEditBudget = (budget: BudgetAllocation) => {
     setEditingBudget(budget);
-    setFormData({
-      categoryId: budget.categoryId,
-      allocated: budget.allocated,
-      period: budget.period,
-    });
     setIsAddModalOpen(true);
   };
 
-  const handleUpdateBudget = () => {
-    if (editingBudget && formData.allocated > 0) {
-      setBudgetAllocations(prev =>
-        prev.map(budget =>
-          budget.id === editingBudget.id
-            ? { ...budget, allocated: formData.allocated, period: formData.period }
-            : budget
-        )
-      );
-      setEditingBudget(null);
-      setFormData({ categoryId: '', allocated: 0, period: 'monthly' });
-      setIsAddModalOpen(false);
-    }
+  const getCurrentMonth = () => {
+    const date = new Date();
+    return date.toLocaleString('default', { month: 'long' });
   };
 
   const handleDeleteBudget = (budgetId: string) => {
@@ -198,174 +189,121 @@ export default function BudgetPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground text-3xl font-bold">Budget Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold">Budget Management</h1>
+          <p className="text-muted-foreground text-sm">
             Allocate and track your monthly budget across different categories
           </p>
         </div>
-        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add Budget
+      </div>
+
+      {/* Conditional content based on budget configuration */}
+      {!isBudgetConfigured ? (
+        // Budget not configured view
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="space-y-6 text-center">
+            <div className="bg-muted mx-auto flex h-24 w-24 items-center justify-center rounded-full">
+              <IndianRupee className="text-muted-foreground h-12 w-12" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-foreground text-xl font-semibold">
+                No Budget Set for This Month
+              </h2>
+              <p className="text-muted-foreground mx-auto max-w-md text-base">
+                Start managing your finances by creating a budget for this month. Set your total
+                budget and allocate amounts to different spending categories.
+              </p>
+            </div>
+            <Button onClick={() => setIsCreateBudgetModalOpen(true)} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Create {getCurrentMonth()} Budget
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingBudget ? 'Edit Budget Allocation' : 'Add Budget Allocation'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingBudget
-                  ? 'Update the budget allocation for this category'
-                  : 'Set a budget limit for a category to track your spending'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {!editingBudget && (
-                <div>
-                  <label className="text-foreground text-sm font-medium">Category</label>
-                  <select
-                    value={formData.categoryId}
-                    onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
-                    className="border-input bg-background text-foreground mt-1 w-full rounded-md border p-2"
-                  >
-                    <option value="">Select a category</option>
-                    {mockCategories
-                      .filter(
-                        cat => !budgetAllocations.some(budget => budget.categoryId === cat.id)
-                      )
-                      .map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.icon} {category.name}
-                        </option>
-                      ))}
-                  </select>
+          </div>
+        </div>
+      ) : (
+        // Budget configured view
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+            <BudgetAllocationCard
+              title={'Total Budget'}
+              value={`Rs. ${totalBudget.toLocaleString()}`}
+              subtitle="Monthly budget limit"
+              icon={<IndianRupee className="text-muted-foreground h-4 w-4" />}
+            />
+            <BudgetAllocationCard
+              title={'Allocated'}
+              value={totalAllocated.toLocaleString()}
+              subtitle={`${((totalAllocated / totalBudget) * 100).toFixed(1)}% of total budget`}
+              icon={<Target className="text-muted-foreground h-4 w-4" />}
+            />
+            <BudgetAllocationCard
+              title={'Spent'}
+              value={totalSpent.toLocaleString()}
+              subtitle={`${((totalSpent / totalAllocated) * 100).toFixed(1)}% of allocated`}
+              icon={<PieChartIcon className="text-muted-foreground h-4 w-4" />}
+            />
+            <BudgetAllocationCard
+              title={'Remaining'}
+              value={remainingBudget.toLocaleString()}
+              subtitle={remainingBudget < 0 ? 'Over budget' : 'Available to allocate'}
+              icon={<IndianRupee className="text-muted-foreground h-4 w-4" />}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Budget Allocations List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Budget Allocations</CardTitle>
+                <CardDescription>
+                  Track your spending against allocated budgets for each category
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {budgetAllocations.map(budget => {
+                    return (
+                      <BarTile
+                        key={budget.id}
+                        budget={budget}
+                        handleDeleteBudget={handleDeleteBudget}
+                        handleEditBudget={handleEditBudget}
+                      />
+                    );
+                  })}
+
+                  {budgetAllocations.length === 0 && (
+                    <div className="py-8 text-center">
+                      <PieChartIcon className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+                      <h3 className="text-foreground mb-2 text-lg font-medium">
+                        No budget allocations yet
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        Start by adding budget allocations for your spending categories
+                      </p>
+                      <Button onClick={() => setIsAddModalOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Your First Budget
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-              <div>
-                <label className="text-foreground text-sm font-medium">Budget Amount</label>
-                <Input
-                  type="number"
-                  value={formData.allocated}
-                  onChange={e => setFormData({ ...formData, allocated: Number(e.target.value) })}
-                  placeholder="Enter budget amount"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-foreground text-sm font-medium">Period</label>
-                <select
-                  value={formData.period}
-                  onChange={e =>
-                    setFormData({
-                      ...formData,
-                      period: e.target.value as 'monthly' | 'quarterly' | 'yearly',
-                    })
-                  }
-                  className="border-input bg-background text-foreground mt-1 w-full rounded-md border p-2"
-                >
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button
-                  onClick={editingBudget ? handleUpdateBudget : handleAddBudget}
-                  className="flex-1"
-                >
-                  {editingBudget ? 'Update Budget' : 'Add Budget'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsAddModalOpen(false);
-                    setEditingBudget(null);
-                    setFormData({ categoryId: '', allocated: 0, period: 'monthly' });
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+              </CardContent>
+            </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <BudgetAllocationCard
-          title={'Total Budget'}
-          value={`Rs. ${totalBudget.toLocaleString()}`}
-          subtitle="Monthly budget limit"
-          icon={<IndianRupee className="text-muted-foreground h-4 w-4" />}
-        />
-        <BudgetAllocationCard
-          title={'Allocated'}
-          value={totalAllocated.toLocaleString()}
-          subtitle={`${((totalAllocated / totalBudget) * 100).toFixed(1)}% of total budget`}
-          icon={<Target className="text-muted-foreground h-4 w-4" />}
-        />
-        <BudgetAllocationCard
-          title={'Spent'}
-          value={totalSpent.toLocaleString()}
-          subtitle={`${((totalSpent / totalAllocated) * 100).toFixed(1)}% of allocated`}
-          icon={<PieChartIcon className="text-muted-foreground h-4 w-4" />}
-        />
-        <BudgetAllocationCard
-          title={'Remaining'}
-          value={remainingBudget.toLocaleString()}
-          subtitle={remainingBudget < 0 ? 'Over budget' : 'Available to allocate'}
-          icon={<IndianRupee className="text-muted-foreground h-4 w-4" />}
-        />
-      </div>
+            {/* Pie Chart */}
+            <PieChartDistribution pieChartData={pieChartData} CustomTooltip={CustomTooltip} />
+          </div>
+        </>
+      )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Budget Allocations List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Budget Allocations</CardTitle>
-            <CardDescription>
-              Track your spending against allocated budgets for each category
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {budgetAllocations.map(budget => {
-                return (
-                  <BarTile
-                    key={budget.id}
-                    budget={budget}
-                    handleDeleteBudget={handleDeleteBudget}
-                    handleEditBudget={handleEditBudget}
-                  />
-                );
-              })}
-
-              {budgetAllocations.length === 0 && (
-                <div className="py-8 text-center">
-                  <PieChartIcon className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-                  <h3 className="text-foreground mb-2 text-lg font-medium">
-                    No budget allocations yet
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start by adding budget allocations for your spending categories
-                  </p>
-                  <Button onClick={() => setIsAddModalOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Your First Budget
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pie Chart */}
-        <PieChartDistribution pieChartData={pieChartData} CustomTooltip={CustomTooltip} />
-      </div>
+      {/* Budget Creation Modal */}
+      <BudgetCreationModal
+        isOpen={isCreateBudgetModalOpen}
+        onClose={() => setIsCreateBudgetModalOpen(false)}
+        onBudgetCreated={handleBudgetCreated}
+        categories={mockCategories}
+      />
     </div>
   );
 }
