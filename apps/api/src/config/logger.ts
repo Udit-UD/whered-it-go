@@ -33,19 +33,26 @@ const format = winston.format.combine(
 );
 
 // Define which transports the logger must use to print out messages
-const transports = [
+const transports: winston.transport[] = [
   // Allow the use the console to print the messages
   new winston.transports.Console(),
-  // Allow to print all the error level messages inside the error.log file
-  new winston.transports.File({
-    filename: path.join('logs', 'error.log'),
-    level: 'error',
-  }),
-  // Allow to print all the error message inside the all.log file
-  new winston.transports.File({
-    filename: path.join('logs', 'all.log'),
-  }),
 ];
+
+// Only add file transports in non-production environments
+// Vercel doesn't support file system writes, so skip file transports in production
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  transports.push(
+    // Allow to print all the error level messages inside the error.log file
+    new winston.transports.File({
+      filename: path.join('logs', 'error.log'),
+      level: 'error',
+    }),
+    // Allow to print all the error message inside the all.log file
+    new winston.transports.File({
+      filename: path.join('logs', 'all.log'),
+    })
+  );
+}
 
 // Create the logger instance that has to be exported
 // and used to log messages.

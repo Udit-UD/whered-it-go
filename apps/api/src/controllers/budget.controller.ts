@@ -337,7 +337,7 @@ export const bulkAllocateBudgetCategories = asyncHandler(
       const results = await Promise.all(
         _.map(allocations, allocation =>
           BudgetCategory.findOneAndUpdate(
-            { budgetId: budget._id, categoryId: allocation.categoryId },
+            { budgetId: budget?._id, categoryId: allocation.categoryId },
             {
               allocatedAmount: allocation.allocatedAmount,
               note: allocation.note,

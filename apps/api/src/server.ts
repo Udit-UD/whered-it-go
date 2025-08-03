@@ -67,7 +67,19 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Server is running',
+    environment: config.nodeEnv,
     timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0',
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Whered-it-go API is running',
+    status: 'OK',
+    environment: config.nodeEnv,
+    version: process.env.npm_package_version || '1.0.0',
   });
 });
 
@@ -75,10 +87,13 @@ app.get('/api/health', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = config.port;
-
-app.listen(PORT, () => {
-  Logger.info(`Server running in ${config.nodeEnv} mode on port ${PORT}`);
-});
+// Start server only if not in Vercel environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  const PORT = config.port || process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    Logger.info(`Server running on port ${PORT}`);
+    Logger.info(`Environment: ${config.nodeEnv}`);
+  });
+}
 
 export default app;

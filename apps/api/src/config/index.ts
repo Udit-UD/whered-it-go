@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env file
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Load environment variables from appropriate .env file
+const envFile = '.env';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 interface Config {
   port: number;
@@ -30,7 +31,7 @@ const config: Config = {
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
-if (missingEnvVars.length > 0) {
+if (missingEnvVars.length > 0 && config.nodeEnv === 'production') {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
